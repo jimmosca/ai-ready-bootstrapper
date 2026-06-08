@@ -35,7 +35,7 @@ def test_render_produces_all_files(python_repo):
 
 
 def test_generate_writes_all_files_to_disk(python_repo, tmp_path):
-    out = tmp_path / "pack"
+    out = python_repo / ".ai" / "phase0"  # the intended in-repo location
     target = ScanTarget(repo_path=python_repo, output_dir=out)
     written = generate(target, generated_at="2026-06-08T00:00:00Z")
 
@@ -103,3 +103,14 @@ def test_bare_repo_still_renders_with_explicit_unknowns(tmp_path):
     # Uncertainty is explicit, not hidden.
     assert "[OPEN]" in files["repo-map.md"]
     assert "unknown" in files["agent-handoff.md"].lower()
+
+
+def test_secret_file_becomes_a_risk_without_leaking_value(python_repo):
+    (python_repo / ".env").write_text("DB_PASSWORD=do-not-leak-me\n")
+    files = render(scan_repo(python_repo), generated_at="2026-06-08T00:00:00Z")
+
+    register = files["risk-register.md"]
+    assert "secrets" in register
+    assert ".env" in register  # location is recorded
+    # The secret value must never appear in any generated file.
+    assert all("do-not-leak-me" not in content for content in files.values())

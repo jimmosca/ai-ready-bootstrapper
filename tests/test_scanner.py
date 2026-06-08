@@ -136,3 +136,76 @@ def test_head_commit_read_only_from_loose_ref(tmp_path):
     assert result.inventory.head_commit == sha
     # .git itself is ignored, so it contributes nothing to file_count.
     assert result.inventory.file_count == 1
+
+
+# --- safety: secret files, symlinks, binary, oversize ------------------------
+
+
+def test_secret_files_are_flagged_not_read(python_repo):
+    """Secret-bearing files are recorded by location but never read."""
+    secret = python_repo / ".env"
+    secret.write_text("API_TOKEN=super-secret-value\n")
+
+    result = scan_repo(python_repo)
+    assert ".env" in result.secret_files
+    # The value must never surface anywhere in the scan result.
+    assert "super-secret-value" not in repr(result)
+
+
+def test_read_text_skips_secret_files(python_repo):
+    from phase0_bootstrapper.scanner import _read_text
+
+    secret = python_repo / "id_rsa"
+    secret.write_text("-----BEGIN PRIVATE KEY-----\nMIIEv...\n")
+    assert _read_text(secret) == ""
+
+
+def test_read_text_skips_binary(tmp_path):
+    from phase0_bootstrapper.scanner import _read_text
+
+    blob = tmp_path / "image.bin"
+    blob.write_bytes(b"\x89PNG\x00\x00\x00binary\x00data")
+    assert _read_text(blob) == ""
+
+
+def test_read_text_skips_oversize(tmp_path):
+    from phase0_bootstrapper.safety import MAX_READ_BYTES
+    from phase0_bootstrapper.scanner import _read_text
+
+    big = tmp_path / "huge.txt"
+    big.write_bytes(b"a" * (MAX_READ_BYTES + 10))
+    assert _read_text(big) == ""
+
+
+def test_walk_does_not_follow_symlinked_files(python_repo, tmp_path):
+    """A symlinked file must not be read or counted (no escaping the repo)."""
+    outside = tmp_path.parent / "outside_secret.txt"
+    outside.write_text("OUTSIDE_SECRET\n")
+    link = python_repo / "linked.txt"
+    try:
+        link.symlink_to(outside)
+    except (OSError, NotImplementedError):  # pragma: no cover - no symlink support
+        pytest.skip("symlinks unavailable on this platform")
+
+    result = scan_repo(python_repo)
+    rels = {p for paths in result.important_files.values() for p in paths}
+    assert "linked.txt" not in rels
+    assert "OUTSIDE_SECRET" not in repr(result)
+
+
+def test_walk_does_not_follow_symlinked_dirs(python_repo, tmp_path):
+    """A symlinked directory must not be descended into."""
+    external = tmp_path.parent / "external_tree"
+    (external / "deep").mkdir(parents=True, exist_ok=True)
+    (external / "deep" / "leaked.py").write_text("print('leaked')\n")
+    link = python_repo / "linkdir"
+    try:
+        link.symlink_to(external, target_is_directory=True)
+    except (OSError, NotImplementedError):  # pragma: no cover - no symlink support
+        pytest.skip("symlinks unavailable on this platform")
+
+    result = scan_repo(python_repo)
+    rels = sorted(
+        p for paths in result.important_files.values() for p in paths
+    )
+    assert not any("linkdir" in r for r in rels)

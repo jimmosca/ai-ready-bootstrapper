@@ -16,7 +16,7 @@ from pathlib import Path
 from . import __version__
 from .models import Phase0Report, ScanTarget
 from .renderer import RenderedPack, build_pack, write_pack
-from .safety import DEFAULT_OUTPUT_SUBDIR
+from .safety import DEFAULT_OUTPUT_SUBDIR, ensure_safe_output_dir
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -82,6 +82,11 @@ def cmd_scan(args: argparse.Namespace) -> int:
 
     wrote = False
     if not args.dry_run:
+        try:
+            ensure_safe_output_dir(output_dir, pack.scan.inventory.root)
+        except ValueError as exc:
+            print(f"phase0 scan failed: {exc}", file=sys.stderr)
+            return 1
         if _has_contents(output_dir) and not args.force:
             print(
                 f"phase0 scan: output directory already exists and is not empty:\n"

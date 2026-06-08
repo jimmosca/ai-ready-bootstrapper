@@ -114,3 +114,11 @@ def test_json_dry_run_reports_null_output(capsys, repo, tmp_path):
     assert data["dry_run"] is True
     assert data["output_path"] is None
     assert not out.exists()
+
+
+def test_output_dir_inside_repo_outside_ai_is_refused(capsys, repo):
+    out = repo / "src" / "pack"  # inside the repo, not under .ai/
+    code = main(["scan", "--repo-path", str(repo), "--output-dir", str(out)])
+    assert code == 1
+    assert "refusing to write inside the repo" in capsys.readouterr().err.lower()
+    assert not out.exists()

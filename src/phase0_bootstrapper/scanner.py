@@ -21,7 +21,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .models import CommandInfo, ConfidenceLevel, FindingType, RepoInventory, ScanTarget
-from .safety import MAX_READ_BYTES, ensure_safe_repo_path, is_ignored_dir
+from .safety import (
+    MAX_READ_BYTES,
+    ensure_safe_repo_path,
+    is_ignored_dir,
+    is_secret_file,
+    looks_binary,
+)
 
 # --- detection tables --------------------------------------------------------
 
@@ -70,6 +76,8 @@ class RepoScan:
     top_level: list[str] = field(default_factory=list)
     #: names of ignored directories actually present (excluded from the walk).
     excluded_dirs: list[str] = field(default_factory=list)
+    #: relative paths of secret-bearing files (existence/location only; never read).
+    secret_files: list[str] = field(default_factory=list)
 
 
 # --- public API --------------------------------------------------------------
@@ -92,6 +100,7 @@ def scan_repo(repo_path: Path | str) -> RepoScan:
     top_level, excluded_dirs = _shallow_listing(root)
     files = list(_iter_files(root))
     rels = sorted(p.relative_to(root).as_posix() for p in files)
+    secret_files = sorted(r for r in rels if is_secret_file(Path(r).name))
 
     inventory = RepoInventory(
         name=root.name,
@@ -112,6 +121,7 @@ def scan_repo(repo_path: Path | str) -> RepoScan:
         commands=commands,
         top_level=top_level,
         excluded_dirs=excluded_dirs,
+        secret_files=secret_files,
     )
 
 
@@ -135,20 +145,43 @@ def _shallow_listing(root: Path) -> tuple[list[str], list[str]]:
 
 
 def _iter_files(root: Path):
-    """Yield every file under ``root``, pruning ignored directories in place."""
-    for dirpath, dirnames, filenames in os.walk(root):
+    """Yield every regular file under ``root``, read-only and symlink-safe.
+
+    Ignored directories are pruned in place; symlinked directories and files are
+    skipped so the walk can never escape the target repo (``followlinks=False``
+    plus an explicit ``is_symlink`` guard).
+    """
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
         # Mutating dirnames in place prevents os.walk from descending into them.
-        dirnames[:] = sorted(d for d in dirnames if not is_ignored_dir(d))
+        dirnames[:] = sorted(
+            d for d in dirnames if not is_ignored_dir(d) and not (Path(dirpath) / d).is_symlink()
+        )
         for name in sorted(filenames):
-            yield Path(dirpath) / name
+            path = Path(dirpath) / name
+            if path.is_symlink():  # do not follow symlinks out of the repo
+                continue
+            yield path
 
 
 def _read_text(path: Path, max_bytes: int = MAX_READ_BYTES) -> str:
-    """Read at most ``max_bytes`` of a file as text. Never raises."""
+    """Read at most ``max_bytes`` of a file as text. Never raises.
+
+    Returns ``""`` (reads nothing) for secret-bearing files, symlinks, files
+    over the size threshold, and binary content — so secret values and large or
+    non-text blobs never enter memory or output (``docs/safety-policy.md``).
+    """
+    if is_secret_file(path.name):
+        return ""
     try:
+        if path.is_symlink():
+            return ""
+        if path.stat().st_size > max_bytes:
+            return ""
         with path.open("rb") as fh:
             data = fh.read(max_bytes)
     except OSError:
+        return ""
+    if looks_binary(data):
         return ""
     return data.decode("utf-8", errors="replace")
 

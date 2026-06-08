@@ -31,6 +31,7 @@ from .models import (
     Risk,
     ScanTarget,
 )
+from .safety import ensure_safe_output_dir, is_dangerous_root
 from .scanner import RepoScan, scan_repo
 
 # The 10 markdown artifacts + manifest.yaml. Order = render/listing order.
@@ -124,11 +125,18 @@ def render(scan: RepoScan, generated_at: str | None = None) -> dict[str, str]:
 def generate(target: ScanTarget, generated_at: str | None = None) -> list[Path]:
     """Scan ``target`` read-only, render the pack, and write it. Returns paths written."""
     pack = build_pack(target, generated_at=generated_at)
+    ensure_safe_output_dir(target.output_dir, pack.scan.inventory.root)
     return write_pack(target.output_dir, pack.files)
 
 
 def write_pack(output_dir: Path, files: dict[str, str]) -> list[Path]:
-    """Write the pack into ``output_dir`` (the only permitted write)."""
+    """Write the pack into ``output_dir`` (the only permitted write).
+
+    Refuses a system/home root as a last-line guard; callers should also pass the
+    path through :func:`ensure_safe_output_dir` for the in-repo containment check.
+    """
+    if is_dangerous_root(output_dir):
+        raise ValueError(f"refusing to write to a system/home root: {output_dir}")
     output_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
     for name in ALL_FILES:
@@ -256,6 +264,17 @@ def _compile(scan: RepoScan, ledger: _Ledger, ts: str) -> Phase0Report:
             ConfidenceLevel.MEDIUM,
             "Confirm whether CI gates exist elsewhere before assuming none.",
             walk,
+        )
+    for rel in scan.secret_files:
+        # Existence + location only — the file's contents are never read.
+        eid = ledger.add("secret-bearing file present (contents not read)", rel)
+        add_risk(
+            f"Secret-bearing file present: {rel} (contents not read)",
+            "secrets",
+            ConfidenceLevel.HIGH,
+            ConfidenceLevel.HIGH,
+            "Confirm it is git-ignored and uncommitted; never read its value; rotate if exposed.",
+            eid,
         )
     report.risks = risks
 
