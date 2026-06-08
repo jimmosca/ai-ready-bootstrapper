@@ -1,0 +1,40 @@
+schema_version: "0.1"
+phase0_version: "0.1.0"
+generated_at: "2026-06-08T13:15:33Z"
+generator: phase0-bootstrapper
+mode: read-only
+repo:
+  name: "python_fastapi_repo"
+  root: "/path/to/python_fastapi_repo"
+  vcs: none
+  head_commit: ""
+  file_count: 7
+  languages: [Python]
+project_types: [Python]
+analyzed_areas: [.github, Dockerfile, README.md, pyproject.toml, src, tests]
+excluded_areas: []
+files:
+  - { path: repo-map.md, confidence: medium, summary: "languages, layout, important files, project types" }
+  - { path: architecture.md, confidence: low, summary: "coarse inferred structure (low confidence)" }
+  - { path: entrypoints.md, confidence: medium, summary: "detected commands as entrypoints (not executed)" }
+  - { path: commands-and-tooling.md, confidence: medium, summary: "package manager, tooling, detected commands" }
+  - { path: decision-log.md, confidence: medium, summary: "obvious, evidence-backed decisions only" }
+  - { path: assumptions-and-open-questions.md, confidence: medium, summary: "weak-signal assumptions + open questions" }
+  - { path: risk-register.md, confidence: medium, summary: "concrete gaps with severity/confidence/mitigation" }
+  - { path: safe-change-boundaries.md, confidence: medium, summary: "safe / caution / do-not-touch areas" }
+  - { path: agent-handoff.md, confidence: medium, summary: "operational handoff for the next agent" }
+  - { path: evidence-map.md, confidence: medium, summary: "E# -> source traceability index" }
+agent_readiness:
+  build: { status: present, note: "" }
+  test: { status: present, note: "" }
+  lint_format_typecheck: { status: present, note: "" }
+  ci_gates: { status: present, note: "other CI not inspected" }
+  env_setup_reset: { status: unknown, note: "not inspected read-only" }
+  run_locally: { status: absent, note: "" }
+  docs_specs: { status: present, note: "" }
+  correctness_signal: { status: present, note: "no execution performed" }
+coverage:
+  inspected: [.github, Dockerfile, README.md, pyproject.toml, src, tests]
+  skipped_or_sampled: []
+  unknown: [runtime behavior, data flow, deployment target]
+overall_confidence: medium

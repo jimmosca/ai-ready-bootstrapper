@@ -1,0 +1,15 @@
+[project]
+name = "rag-backend"
+version = "0.1.0"
+description = "Data + AI backend with a mocked LLM provider"
+requires-python = ">=3.10"
+dependencies = ["fastapi", "pydantic"]
+
+[dependency-groups]
+dev = ["pytest", "ruff"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

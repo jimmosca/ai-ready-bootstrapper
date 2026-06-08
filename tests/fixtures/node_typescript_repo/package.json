@@ -1,0 +1,20 @@
+{
+  "name": "greeter-svc",
+  "version": "0.1.0",
+  "description": "Tiny TypeScript HTTP greeter",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.3.0"
+  }
+}

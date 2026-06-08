@@ -1,0 +1,15 @@
+[project]
+name = "orders-api"
+version = "0.1.0"
+description = "FastAPI orders service"
+requires-python = ">=3.10"
+dependencies = ["fastapi", "uvicorn"]
+
+[dependency-groups]
+dev = ["pytest", "ruff", "mypy"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

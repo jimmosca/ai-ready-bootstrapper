@@ -1,0 +1,10 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: "Cleaned orders staging model."
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
