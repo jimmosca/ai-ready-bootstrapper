@@ -37,6 +37,21 @@ captures evidence, flags risks, and produces a structured handoff under
 4. **Lean beats exhaustive** — gotcha lists, not tutorials; more context hurts.
 5. **MVP, no overengineering** — eleven solid artifacts, then stop.
 
+> **Status: v0.1 MVP.** See [`docs/v0.1-scope.md`](docs/v0.1-scope.md) for exactly
+> what is and isn't supported, [`docs/demo.md`](docs/demo.md) for a 2-minute
+> walkthrough, and [`CHANGELOG.md`](CHANGELOG.md) for release notes.
+
+## Install
+
+Requirements: **Python ≥ 3.10** and [`uv`](https://docs.astral.sh/uv/). There are
+**no runtime dependencies** — the package uses only the Python standard library.
+
+```bash
+git clone <this-repo> && cd ai-ready-bootstrapper
+uv sync                 # create .venv and install the package + dev tools
+uv run phase0 --help    # verify the CLI is wired up
+```
+
 ## Two ways to use it
 
 ### As a CLI
@@ -49,8 +64,7 @@ report → write the 11-file pack. The only filesystem write is the output
 directory.
 
 ```bash
-uv sync                 # create the venv and install deps
-uv run phase0 --help    # show the CLI
+uv run phase0 --help                                  # show the CLI
 uv run phase0 scan --repo-path /path/to/repo          # writes <repo>/.ai/phase0/
 ```
 
@@ -128,21 +142,48 @@ Nothing was run — this is a read-only pack.
 A full, unedited example pack lives in
 [`skills/phase0-bootstrapper/resources/examples/minimal-output/`](skills/phase0-bootstrapper/resources/examples/minimal-output/).
 
-## Develop
+## Safety model
+
+The tool is **read-only on the target repo** and runs **offline** — no LLM, no
+network, no external services. Enforced in code (see
+[`docs/safety-policy.md`](docs/safety-policy.md)):
+
+- **Only write path:** `<repo>/.ai/phase0/`. It refuses to write to the repo
+  root, anywhere in the source tree, or a system/home root.
+- **No execution:** no command is ever run — build/test/install/run/format/
+  codegen and project scripts are detected, never executed, and `git` is never
+  written to.
+- **Bounded reads:** files > 1 MB, binaries, and symlinks are skipped; ignored
+  cache/vendored/build dirs are pruned; the walk cannot escape the repo.
+- **Secrets:** `.env`, private keys, and credential files are flagged by
+  **location only** in `risk-register.md` — their contents are never read,
+  rendered, or printed (`.env.example` / `*.pub` are treated as safe).
+- **Refuses dangerous targets:** non-existent paths and system/home roots.
+
+## Development
 
 ```bash
-uv run pytest           # run tests
-uv run ruff check       # lint
+uv run pytest           # run the test suite
+uv run ruff check .     # lint
+uv run ruff format .    # format
+
+# try it against a bundled fixture (writes to a temp copy, not the source):
+cp -r tests/fixtures/python_fastapi_repo /tmp/demo
+uv run phase0 scan --repo-path /tmp/demo
 ```
 
 The formal contract the implementation follows lives in [`docs/`](docs/) (see
-[`AGENTS.md`](AGENTS.md)).
+[`AGENTS.md`](AGENTS.md)): [`phase0-contract`](docs/phase0-contract.md),
+[`output-schema`](docs/output-schema.md), [`safety-policy`](docs/safety-policy.md),
+[`evidence-policy`](docs/evidence-policy.md), [`v0.1-scope`](docs/v0.1-scope.md),
+and [`demo`](docs/demo.md).
 
 ## Layout
 
 ```
 AGENTS.md / CLAUDE.md       # agent guidance → routes to docs/
-docs/                       # formal contract (phase0/output/safety/evidence)
+CHANGELOG.md                # release notes (v0.1)
+docs/                       # contract + scope + demo (phase0/output/safety/evidence/v0.1-scope/demo)
 pyproject.toml              # uv project + ruff + pytest config
 src/phase0_bootstrapper/    # cli.py, models.py, scanner.py, renderer.py, safety.py
 tests/                      # pytest (+ tests/fixtures/ sample repos)
