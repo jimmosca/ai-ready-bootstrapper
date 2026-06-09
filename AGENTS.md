@@ -41,6 +41,16 @@ If none apply, write nothing. Mechanism by reference to existing skills
 (`grill-with-docs`, `to-prd`, `improve-codebase-architecture`); if they aren't
 available, write the doc by hand to the same standard.
 
+### GitHub workflow
+
+Work in issue-sized **vertical slices**; one **branch + PR per slice**. Defaults
+(adopt the repo's own convention if it has one — here we use these): Conventional
+Commits, tiny and green; branch `<type>/<issue>-<slug>`; PR `Closes #N`,
+**squash-merge**; the Verify gate must pass before merge. Minimal labels:
+`ready-for-agent`, `needs-info`. Richer machinery (PRD→issues, triage) is
+available as skills (`to-prd`, `to-issues`, `triage`) — not mandatory. Why and
+the full rules: [ADR-0003](docs/adr/0003-github-working-methodology.md).
+
 Pointers: [`CONTEXT.md`](CONTEXT.md) (language) · [`docs/adr/`](docs/adr/)
 (decisions) · §3 below (canonical commands) · the `docs/` contract (listed at
 the foot of this file).
