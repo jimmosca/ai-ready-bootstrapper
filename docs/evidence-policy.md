@@ -1,70 +1,86 @@
 # Evidence Policy
 
-How Phase 0 separates what it *knows* from what it *guesses*. This is the
-discipline that makes the pack trustworthy. Evidence over vibes.
+How phase0-bootstrapper separates what it *knows* from what it *guesses*. This is
+**process discipline for the infer→interview method**, not a filing system: the
+tags live in how the agent reasons, and the surface it writes carries inline
+citations and explicit open questions — no separate evidence ledger. Evidence
+over vibes.
 
-## The four epistemic tags
+## The four epistemic tags (in the method)
 
-Every non-trivial claim carries exactly one tag:
+During **infer → interview**, every non-trivial claim carries exactly one tag:
 
-- **`[FACT]`** — directly observed in the repo. **Must** cite evidence: a
-  `path:line` reference or a read-only command + its output. Gets an evidence ID
-  (`E#`) recorded in `evidence-map.md`.
-  *e.g.* `[FACT] Test runner is vitest. evidence: E12 (package.json:31)`
-- **`[INFERENCE]`** — a conclusion reasoned from one or more facts. **Must** cite
-  the supporting evidence IDs and a `confidence` level.
-  *e.g.* `[INFERENCE] HTTP layer is Express. confidence: high. from E4, E7`
-- **`[ASSUMPTION]`** — taken as true to make progress, but unverified. **Must**
-  state what would confirm or refute it, and the impact if wrong.
+- **`[FACT]`** — directly observed in the repo. Cite an inline `path:line` (or a
+  read-only command + its output excerpt).
+  *e.g.* `[FACT] Test runner is vitest (package.json:31).`
+- **`[INFERENCE]`** — reasoned from one or more facts. State a `confidence` level.
+  *e.g.* `[INFERENCE] HTTP layer is Express. confidence: high (imports + scripts).`
+- **`[ASSUMPTION]`** — taken as true to make progress, unverified. State what
+  would confirm or refute it, and the impact if wrong.
   *e.g.* `[ASSUMPTION] Postgres is the prod DB (only docker-compose seen). Confirm via infra/. Impact: high.`
-- **`[OPEN]`** — an unresolved question for a human or later agent.
+- **`[OPEN]`** — an unresolved question for the interview or a later agent.
   *e.g.* `[OPEN] Which service owns auth token rotation?`
 
-A claim with no tag is not allowed. A `[FACT]` with no evidence is not a fact —
-downgrade it to `[INFERENCE]` or `[ASSUMPTION]`.
+A claim with no tag is not allowed. A `[FACT]` with no `path:line` is not a fact —
+downgrade it, or take it to the interview.
+
+## The interview promotes evidence
+
+The point of the interview is to **move claims up the ladder**: a maintainer's
+answer turns an `[INFERENCE]`/`[ASSUMPTION]` into a `[FACT]` (now citable), or
+resolves an `[OPEN]` into a decision (→ ADR) or a term (→ `CONTEXT.md`). What the
+interview cannot confirm stays an explicit open question — it is never quietly
+promoted.
+
+## What lands in the written surface
+
+The tags are scaffolding; they mostly **do not appear** in the final artifacts.
+Instead:
+
+- **Confirmed** → stated plainly with an inline `path:line` where the citation
+  helps a reader verify (e.g. a canonical command, a key entrypoint).
+- **Unconfirmed** → an explicit **open question**, surfaced where it matters
+  (e.g. `AGENTS.md` "Open questions for a maintainer", or a risk line). The #1
+  open question when no verification loop exists is called out by name (see
+  [output-schema.md](output-schema.md)).
+- **No `evidence-map.md`, no `E#` IDs, no `manifest.yaml`.** Traceability is the
+  inline `path:line` itself; the only persisted machine artifact is the sensor's
+  `.ai/phase0/scan.json` (audit, not citation ledger).
 
 ## Confidence levels (for inferences)
 
-- **high** — multiple independent signals agree (e.g. manifest + import + CI all
-  point the same way).
+- **high** — multiple independent signals agree (manifest + import + CI).
 - **medium** — one solid, direct signal.
-- **low** — weak, indirect, or convention-based signal (a guess from naming or
-  defaults). Low-confidence inferences should usually also raise an `[OPEN]`.
+- **low** — weak, indirect, or convention-based (a guess from naming or defaults).
+  Low-confidence inferences should usually become an interview question or an
+  `[OPEN]`.
 
-## Evidence format
+## Citation format
 
-- Inline: `evidence: E#`. Resolve every `E#` in `evidence-map.md` as:
-  `E# | <short claim> | <path:line | command> | <file|command|config>`.
-- `path:line` for a specific location (clickable); `path` alone only when the
-  whole file is the evidence.
-- Command evidence: record the **read-only** command and the relevant output
-  excerpt, not a paraphrase.
-- One evidence ID per distinct source; reuse the same `E#` when multiple claims
-  rest on the same source.
+- Inline `path:line` for a specific location (clickable); `path` alone only when
+  the whole file is the evidence.
+- Command evidence: the **read-only** command and the relevant output excerpt,
+  not a paraphrase.
 
-## Counter-evidence format
+## Counter-evidence
 
-When signals conflict, record both — do not silently pick a winner:
+When signals conflict, surface both — don't silently pick a winner. Prefer the
+more authoritative source (CI / lockfile / source code) over the less (README /
+comments / naming) and say why; if the conflict is material and unresolved, raise
+it as an interview question or `[OPEN]` and lower confidence.
 
-- Note it on the claim: `[INFERENCE] … confidence: low. supports: E4; contradicts: E9`.
-- Prefer the more authoritative source (CI/lockfile/source code) over the less
-  authoritative (README/comments/naming), and say why.
-- If the conflict is material and unresolved, raise an `[OPEN]` question and
-  lower confidence accordingly.
+## Rules for avoiding hallucinated claims
 
-## Rules for avoiding hallucinated architecture claims
-
-1. **No component, dependency, datastore, or data flow may be asserted as
-   `[FACT]` without a `path:line`.** If you cannot point to it, it is at best an
-   `[INFERENCE]` with stated confidence.
+1. **No component, dependency, datastore, or data flow asserted as `[FACT]`
+   without a `path:line`.** Otherwise it is at best an `[INFERENCE]` with stated
+   confidence — or an interview question.
 2. **Names are not behavior.** A file called `cache.ts` is evidence of a name,
-   not proof of caching — tag accordingly.
-3. **Do not invent versions, flags, endpoints, or config keys.** Quote them from
-   source or omit them.
+   not proof of caching — and a directory name is not a confirmed glossary term.
+   Term candidates go to the interview, not straight into `CONTEXT.md`.
+3. **Do not invent versions, flags, endpoints, config keys, ADRs, or components.**
+   Quote them from source or omit them.
 4. **Absence ≠ non-existence.** "No tests found in inspected paths" is an
-   `[OPEN]`/`[ASSUMPTION]` bounded by what you sampled, not a `[FACT]` that none
+   `[OPEN]`/`[ASSUMPTION]` bounded by what was sampled, not a `[FACT]` that none
    exist.
-5. **Diagrams require evidence.** Only draw an edge/box you can trace to a
-   `path:line`.
-6. **Prefer "unknown".** An honest gap is more useful to the next agent than a
-   confident fabrication.
+5. **Prefer "unknown".** An honest open question is more useful to the next agent
+   — and to the maintainer being interviewed — than a confident fabrication.
