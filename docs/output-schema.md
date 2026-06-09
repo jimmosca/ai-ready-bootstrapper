@@ -43,7 +43,7 @@ block (idempotent). See [safety-policy.md](safety-policy.md).
   5. **Upkeep Contract** — the trigger-driven clause that keeps the surface
      current (ADR / new term / changed verification or "Start here" pointer →
      update in the same change; else write nothing).
-  6. **Pointers** — `CONTEXT.md`, `docs/adr/`, and any `docs/` contract.
+  6. **Pointers** — `CONTEXT.md` and `docs/adr/`.
 - **Must not include:** transcribed architecture, a risk dump, a changelog,
   duplicated code, or marketing prose. **Adopt, don't invent:** do not fabricate
   code-style / PR / security conventions the repo lacks → raise them as open
@@ -56,9 +56,9 @@ block (idempotent). See [safety-policy.md](safety-policy.md).
 ## What this repo is
 ## Canonical commands        (build / test / lint / run / verify — or "none found")
 ## How we work here          (RPI → Verify loop, ~5 bullets; skills referenced)
-## Upkeep Contract           (ADR / term / verification triggers → same change)
 ## Start here                (pointers, not copies)
-## Pointers                  (CONTEXT.md · docs/adr/ · docs/ contract)
+## Upkeep Contract           (ADR / term / verification triggers → same change)
+## Pointers                  (CONTEXT.md · docs/adr/)
 <!-- phase0:end -->
 ```
 
