@@ -4,6 +4,58 @@ Guidance for AI coding agents (Codex, Claude, etc.) working in this repository.
 Keep it lean: this file routes you to the authoritative contract in
 [`docs/`](docs/) instead of duplicating it. Read the relevant doc before editing.
 
+<!-- phase0:start -->
+## How we work here
+
+This repo runs on a **living convention surface**: this `AGENTS.md` (routing +
+how we work), [`CONTEXT.md`](CONTEXT.md) (shared language), and
+[`docs/adr/`](docs/adr/) (durable decisions). Why we adopted it:
+[ADR-0001](docs/adr/0001-adopt-living-convention-methodology.md).
+
+Work loop — **Research → Plan → Implement → Verify**, weight on the extremes:
+
+- **Research** (read-only, cheap): read before you write; for a wide sweep,
+  delegate to a read-only subagent to protect the main context window.
+- **Plan** (proportional to blast radius): non-trivial change → write a plan and
+  `grill-me` it first; trivial → go direct. Neither strict SDD-always nor vibe
+  coding.
+- **Implement**: minimal, surgical diffs; reuse existing patterns and the words
+  defined in `CONTEXT.md`.
+- **Verify** (hard rule): not done until the canonical commands in §3 pass. Tests
+  are the safety net; loop validate → fix → repeat. Framework-agnostic: prefer
+  example-based acceptance tests in the repo's existing framework; BDD is not
+  imposed ([ADR-0002](docs/adr/0002-no-enforcing-bdd.md)), only run if already present.
+
+### Upkeep Contract
+
+Keep the living convention surface current **in the same change** that makes one
+of these true (trigger-driven — most changes trigger nothing):
+
+- A decision that is **hard to reverse, surprising, or carries a real trade-off**
+  → an ADR in `docs/adr/`.
+- A **new or redefined domain term** → `CONTEXT.md`.
+- A change to **how the repo builds / tests / runs / verifies**, or to a
+  "Start here" pointer → the relevant line of this file.
+
+If none apply, write nothing. Mechanism by reference to existing skills
+(`grill-with-docs`, `to-prd`, `improve-codebase-architecture`); if they aren't
+available, write the doc by hand to the same standard.
+
+### GitHub workflow
+
+Work in issue-sized **vertical slices**; one **branch + PR per slice**. Defaults
+(adopt the repo's own convention if it has one — here we use these): Conventional
+Commits, tiny and green; branch `<type>/<issue>-<slug>`; PR `Closes #N`,
+**squash-merge**; the Verify gate must pass before merge. Minimal labels:
+`ready-for-agent`, `needs-info`. Richer machinery (PRD→issues, triage) is
+available as skills (`to-prd`, `to-issues`, `triage`) — not mandatory. Why and
+the full rules: [ADR-0003](docs/adr/0003-github-working-methodology.md).
+
+Pointers: [`CONTEXT.md`](CONTEXT.md) (language) · [`docs/adr/`](docs/adr/)
+(decisions) · §3 below (canonical commands) · the `docs/` contract (listed at
+the foot of this file).
+<!-- phase0:end -->
+
 ## 1. Project purpose
 
 `phase0-bootstrapper` performs **read-only repository analysis** and produces
