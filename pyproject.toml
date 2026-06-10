@@ -1,20 +1,15 @@
 [project]
 name = "phase0-bootstrapper"
 version = "0.1.0"
-description = "Read-only repository analysis that generates a Phase 0 context pack for coding agents."
+description = "A day-zero installer that brings an unknown repo to the living convention surface."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
 
-[project.scripts]
-phase0 = "phase0_bootstrapper.cli:main"
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/phase0_bootstrapper"]
+# Not an installable package: the deliverable is the Agent Skill, and the sensor
+# is a standalone stdlib script (scripts/scan.py). uv manages only the dev env.
+[tool.uv]
+package = false
 
 [dependency-groups]
 dev = [
@@ -24,7 +19,7 @@ dev = [
 
 [tool.ruff]
 line-length = 100
-src = ["src", "tests"]
+src = ["scripts", "tests"]
 # Sample repos used only as static-analysis input; not our code to lint.
 extend-exclude = ["tests/fixtures"]
 
@@ -33,4 +28,5 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["scripts"]
 addopts = "-q"
