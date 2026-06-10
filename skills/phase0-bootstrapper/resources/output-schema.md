@@ -1,184 +1,144 @@
 # Output Schema
 
-The 11 files of `<target-repo>/.ai/phase0/`. For each: **Purpose**, **Required
-sections**, **Must not include**, **Skeleton**. Skeletons are the canonical
-minimum; working copies live in `.claude/skills/phase0-bootstrapper/templates/`.
+The artifacts of the **living convention surface** and their shape. For each:
+**Purpose**, **Required sections**, **Must not include**, **Skeleton**. Skeletons
+are the canonical minimum; working copies live in
+`.claude/skills/phase0-bootstrapper/templates/` (in the bootstrapper repo) and
+`resources/examples/standard-output/` (worked example, this directory).
 
-Conventions (see [evidence-policy.md](evidence-policy.md)): tag claims
-`[FACT] / [INFERENCE] / [ASSUMPTION] / [OPEN]`; facts cite an evidence ID `E#`
-that resolves in `evidence-map.md`. Keep every file lean and gotcha-first.
+Conventions (see [evidence-policy.md](evidence-policy.md)): confirmed claims
+carry an inline `path:line`; the unconfirmed becomes an explicit open question.
+Keep every artifact lean and pointer-first — **point, don't transcribe**.
+
+## Managed-marker merge
+
+Every write into an existing file is confined to a managed block:
+
+```markdown
+<!-- phase0:start -->
+…generated content…
+<!-- phase0:end -->
+```
+
+Human prose outside the markers is never touched; re-running replaces only the
+block (idempotent). See [safety-policy.md](safety-policy.md).
 
 ---
 
-## manifest.yaml
-- **Purpose:** machine-readable index + readiness scorecard; parseable without
-  the prose files. The first thing an agent loads.
-- **Required sections:** `schema_version`, `generated_at`, `generator`, `repo`
-  (name/root/vcs/head_commit/file_count/languages), `files` (10 artifacts with
-  `confidence` + `summary`), `agent_readiness` (8 dimensions), `coverage`
-  (inspected / skipped_or_sampled / unknown).
-- **Must not include:** prose narrative, secret values, claims without a backing
-  file.
-- **Skeleton:**
-```yaml
-schema_version: "0.1"
-generated_at: ""
-generator: phase0-bootstrapper
-repo: { name: "", root: "", vcs: git, head_commit: "", file_count: 0, languages: [] }
-files:
-  - { path: repo-map.md, confidence: low, summary: "" }
-  # ...one entry per markdown artifact
-agent_readiness:
-  build: { status: unknown, note: "" }   # present|partial|absent|unknown
-  # test, lint_format_typecheck, ci_gates, env_setup_reset, run_locally, docs_specs, correctness_signal
-coverage: { inspected: [], skipped_or_sampled: [], unknown: [] }
-```
+## AGENTS.md (root) — the routing entrypoint
 
-## repo-map.md
-- **Purpose:** what the repo physically is — languages, layout, manifests,
-  generated/vendored areas.
-- **Required sections:** Languages; Top-level layout (annotated tree, not a full
-  dump); Key directories; Manifests & lockfiles; Generated/vendored/build output;
-  Notable/large files.
-- **Must not include:** full file listings, architectural interpretation
-  (belongs in architecture.md), prose.
+- **Purpose:** the one file an agent or human reads first. Routes to the rest;
+  does not transcribe it. Highest-ROI artifact, so it gets a **fixed skeleton**.
+- **Required sections (fixed order, by ROI):**
+  1. **What this repo is** — 2–3 lines.
+  2. **Canonical commands** — copy-pasteable build / test / lint / run / verify;
+     the center of gravity. If the scan finds a verification loop, these are
+     exigible; if it finds **none**, say so explicitly ("no automated
+     verification found; high-risk changes; verify manually by X; **setting up
+     verification is the first recommended task**") — that is open question #1.
+  3. **How we work here** — the RPI+Verify loop in ~5 bullets, weight on the
+     extremes; names the skills used (`grill-me` / `tdd` / `grill-with-docs`).
+  4. **Start here** — pointers into the repo (where to begin reading), not copies.
+  5. **Upkeep Contract** — the trigger-driven clause that keeps the surface
+     current (ADR / new term / changed verification or "Start here" pointer →
+     update in the same change; else write nothing).
+  6. **Pointers** — `CONTEXT.md` and `docs/adr/`.
+- **Must not include:** transcribed architecture, a risk dump, a changelog,
+  duplicated code, or marketing prose. **Adopt, don't invent:** do not fabricate
+  code-style / PR / security conventions the repo lacks → raise them as open
+  questions or later upkeep. Soft budget **~120–150 lines**; overflow becomes
+  pointers.
 - **Skeleton:**
 ```markdown
-# Repo Map
-## Languages
-## Top-level layout
-## Key directories       | dir | purpose | tag | E# |
-## Manifests & lockfiles
-## Generated / vendored / build output
-## Notable / large files
-```
-
-## architecture.md
-- **Purpose:** the inferred system model — components, data flow, stores,
-  integrations.
-- **Required sections:** Components/modules; Layering & data flow; Datastores;
-  External services/integrations; Cross-cutting concerns; Confidence & gaps.
-- **Must not include:** unevidenced claims presented as fact; diagrams not backed
-  by evidence; speculation (push to assumptions-and-open-questions.md).
-- **Skeleton:**
-```markdown
-# Architecture
-## Components / modules   | component | responsibility | tag | E# |
-## Layering & data flow
-## Datastores
-## External services / integrations
-## Cross-cutting concerns
-## Confidence & gaps
-```
-
-## entrypoints.md
-- **Purpose:** where execution begins — the "where do I start reading" map.
-- **Required sections:** a table of entrypoints (path:line, type, trigger, what
-  it does, evidence); Notes.
-- **Must not include:** non-entrypoint files, architectural narrative.
-- **Skeleton:**
-```markdown
-# Entrypoints
-| Entrypoint | Type | Trigger | What it does | Evidence |
-|---|---|---|---|---|
-## Notes
-```
-
-## commands-and-tooling.md
-- **Purpose:** how to build/test/run/verify; the verification surface.
-- **Required sections:** Build; Test; Lint/Format/Typecheck; Run/Serve;
-  Deploy/Release (each: command, source `path:line`, `[FACT]`/`[INFERENCE]`);
-  Verification surface (framework, coverage, CI gates, env setup/reset, gaps).
-- **Must not include:** commands presented as verified when they were not run
-  (unrun = `[INFERENCE]`); invented flags.
-- **Skeleton:**
-```markdown
-# Commands & Tooling
-## Build / Test / Lint / Run / Deploy   | command | source | tag |
-## Verification surface  (framework, coverage, CI gates, env reset, gaps)
-```
-
-## decision-log.md
-- **Purpose:** ADR-style record of decisions inferred from the code.
-- **Required sections:** Inferred decisions (each: Decision · Why (inferred) ·
-  How enforced · evidence · confidence); Existing decision artifacts found
-  (ADRs/PRDs/specs by path).
-- **Must not include:** prescriptive new decisions; "why" stated as fact when it
-  is inferred.
-- **Skeleton:**
-```markdown
-# Decision Log (ADR-style)
-### D1 — <decision>
-- Decision / Why (inferred) / How enforced / Evidence: E#
-## Existing decision artifacts found   | doc | topic | path |
-```
-
-## assumptions-and-open-questions.md
-- **Purpose:** the highest-value unknowns, framed to be resolved by a human/agent.
-- **Required sections:** Assumptions (id, assumption, confirm/refute by, impact
-  if wrong); Open questions (id, question, why it matters, priority); Suggested
-  questions to grill a maintainer.
-- **Must not include:** resolved facts, low-value trivia.
-- **Skeleton:**
-```markdown
-# Assumptions & Open Questions
-## Assumptions       | A# | assumption | confirm/refute by | impact |
-## Open questions    | Q# | question | why it matters | priority |
-## Suggested questions to grill a maintainer
-```
-
-## risk-register.md
-- **Purpose:** ranked risks that constrain safe work.
-- **Required sections:** Risk table (id, risk, category, evidence, likelihood,
-  impact, note); Top 3 risks for the next agent.
-- **Must not include:** secret values (record existence + location only);
-  unranked dumps.
-- **Skeleton:**
-```markdown
-# Risk Register
-| ID | Risk | Category | Evidence | Likelihood | Impact | Note |
-## Top 3 risks for the next agent
-```
-
-## safe-change-boundaries.md
-- **Purpose:** guardrails — where editing is low-risk vs. where to stop and ask.
-- **Required sections:** Safe to change; Dangerous — ask/plan first;
-  Do-not-touch (generated/vendored/lockfiles/build output).
-- **Must not include:** advice without evidence; blanket "everything is safe".
-- **Skeleton:**
-```markdown
-# Safe-Change Boundaries
-## Safe to change        | area | why safe | E# |
-## Dangerous — ask first | area | why dangerous | E# |
-## Do-not-touch
-```
-
-## agent-handoff.md
-- **Purpose:** the lean entrypoint for the next agent. Write last.
-- **Required sections:** What this repo is; Start here; Verified commands
-  (`[FACT]` only); Agent-readiness scorecard; Top risks; Safe-change rules;
-  Biggest unknowns; Suggested next step (RPI).
-- **Must not include:** duplication of other files (reference them by path);
-  unverified commands in "verified"; secrets/PII.
-- **Skeleton:**
-```markdown
-# Agent Handoff
+# AGENTS.md
+<!-- phase0:start -->
 ## What this repo is
-## Start here
-## Verified commands        (only [FACT])
-## Agent-readiness scorecard (link manifest.yaml)
-## Top risks / ## Safe-change rules / ## Biggest unknowns
-## Suggested next step       (Research → Plan before Implement)
+## Canonical commands        (build / test / lint / run / verify — or "none found")
+## How we work here          (RPI → Verify loop, ~5 bullets; skills referenced)
+## Start here                (pointers, not copies)
+## Upkeep Contract           (ADR / term / verification triggers → same change)
+## Pointers                  (CONTEXT.md · docs/adr/)
+<!-- phase0:end -->
 ```
 
-## evidence-map.md
-- **Purpose:** traceability index; single source of truth for evidence IDs.
-- **Required sections:** a table `E# | claim (short) | source (path:line or
-  command) | type`.
-- **Must not include:** claims without a source; duplicated narrative.
+## CONTEXT.md (root, lazy) — shared language
+
+- **Purpose:** the glossary — the words this repo uses and what they mean, so
+  humans and agents talk about the same thing. **Definitions, not mechanics.**
+  Written only if the interview confirms real domain terms (lazy: no terms → no
+  file). Components that used to live in an "architecture map" appear here as
+  named terms, not as a transcribed diagram.
+- **Required sections:** a short preamble (glossary-only; how-we-work lives in
+  `AGENTS.md`, decisions in `docs/adr/`; update terms in the same change) and a
+  **Terms** list. Each term: a heading, a one-paragraph definition, and an
+  `_Avoid:_` line naming wrong synonyms.
+- **Must not include:** mechanics or process (that is `AGENTS.md`), decisions and
+  their rationale (that is `docs/adr/`), or unconfirmed candidate terms (those
+  stay open questions). Names are not behavior — a term is a confirmed meaning,
+  not a directory name.
 - **Skeleton:**
 ```markdown
-# Evidence Map
-| ID | Claim (short) | Source (path:line or command) | Type |
-|---|---|---|---|
+# CONTEXT.md
+Shared language for this repo — definitions, not mechanics. How we work lives in
+AGENTS.md; decisions live in docs/adr/. Update a term in the same change.
+## Terms
+### <Term>
+<one-paragraph definition>
+_Avoid:_ <wrong synonyms>
 ```
+
+## docs/adr/NNNN-kebab-title.md (lazy) — durable decisions
+
+- **Purpose:** record a decision that is **hard to reverse, surprising, or
+  carries a real trade-off** (the three ADR triggers). Only confirmed decisions
+  surfaced by the interview; nothing speculative. Naming follows the `docs/adr/`
+  convention. ADR-0001 (the methodology) is always written (dogfood); repo ADRs
+  are lazy.
+- **Required sections:** Status + Date; Context; Decision; **Why this is an ADR**
+  (which of the three triggers it meets); Consequences. A *rejected alternative*
+  is a valid ADR.
+- **Must not include:** mechanics that belong in `AGENTS.md`, term definitions
+  that belong in `CONTEXT.md`, or a decision re-stated as fact without its why.
+  Point to the live surface instead of copying it.
+- **Skeleton:**
+```markdown
+# NNNN — <decision, imperative>
+- **Status:** Accepted
+- **Date:** YYYY-MM-DD
+## Context
+## Decision
+## Why this is an ADR     (hard to reverse / surprising / real trade-off)
+## Consequences
+```
+
+---
+
+## Internal: .ai/phase0/scan.json
+
+Not part of the surface — the read-only **sensor**'s (`resources/scan.py`)
+machine-readable output, persisted for audit and re-bootstrap. It is the only
+thing written outside `AGENTS.md` / `CONTEXT.md` / `docs/adr/`, and the only write
+exempt from the consent gate (see [safety-policy.md](safety-policy.md)). It is a
+**versioned interface** the skill consumes: this field list plus the sensor's
+tests are its contract (no separate JSON-Schema file).
+
+Top-level fields:
+
+- `schema_version`, `generator` — interface version and producer.
+- `repo` — `{name, root, vcs, head_commit, file_count, languages}`.
+- `project_types` — likely ecosystem(s); includes `"mixed repo"` when more than one.
+- `important_files` — category → relative paths (readme, manifests, tests, CI, …).
+- `commands` — detected build/test/lint/run commands, each
+  `{category, command, source, finding_type, confidence}`. Found verbatim in a
+  manifest → `fact`; inferred from tooling → `inference` with a confidence level
+  (never executed).
+- `top_level`, `excluded_dirs`, `secret_files` — the inspected top-level listing,
+  the ignored dirs pruned from the walk, and secret-bearing files (location only,
+  never read).
+- `glossary_candidates` — proposed domain-term candidates (names, not meanings),
+  each `{term, kind, occurrences, sources}` with `kind` ∈
+  `directory | identifier | readme`. Candidates only — the interview confirms them.
+- `state` — `{status, signals}`. `signals` are presence booleans
+  (`agents_md, claude_md, context_md, adr_dir, context_map, upkeep_contract`);
+  `status` (`virgin | partial | already-bootstrapped`) is a **presence-based hint**,
+  not a health verdict — the skill makes the final decline/top-up call.

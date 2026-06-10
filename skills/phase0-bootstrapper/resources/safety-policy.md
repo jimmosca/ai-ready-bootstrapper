@@ -1,75 +1,108 @@
 # Safety Policy
 
-The operational rules that make Phase 0 read-only. When in doubt, do less and
-log an `[OPEN]` question.
+The operational rules that keep phase0-bootstrapper safe. It writes to a repo's
+root files now, so the guarantee is no longer "read-only everywhere" but
+**confined, marker-merged, consented writes** — and read-only everywhere else.
+When in doubt, do less and log an `[OPEN]` question.
 
-## What "read-only" means in practice
+## The write set
 
-- The target repo's existing files are **never** created, edited, renamed, or
-  deleted.
-- The **only** permitted write is the new `<target-repo>/.ai/phase0/` directory
-  and the 11 files inside it.
-- No process is started that compiles, downloads, mutates state, or has side
-  effects (no build/test/install/run/format/codegen, no servers, no migrations).
-- No `git` command that writes history or working tree.
-- No network action that mutates anything; no sending repo contents to external
-  services beyond what the host agent already does to operate.
+The **only** paths the bootstrapper may create or modify:
 
-## Allowed operations
+- `AGENTS.md` (root)
+- `CONTEXT.md` (root)
+- `docs/adr/*` (new ADR files)
+- `.ai/phase0/*` (the internal `scan.json`)
 
-- Read files (`cat`/Read), list (`ls`, `find`), search (`grep`/ripgrep).
-- `git status`, `git log`, `git ls-files`, `git show`, `git blame`,
-  `git rev-parse HEAD`, `git diff` (read-only inspection).
-- Read manifests, lockfiles, CI configs, Dockerfiles, `.env.example`/config
-  *schemas*, and docs.
-- Compute file stats (counts, sizes, language mix).
-- Dispatch **read-only** sub-agents for breadth-first exploration that return
-  summaries.
-- Write only inside `.ai/phase0/`.
+Everything else in the target repo is **read-only**. Source files are never
+edited, renamed, or deleted.
 
-## Forbidden operations
+## Managed-marker merge rule
 
-- Editing/creating/deleting any path outside `.ai/phase0/`.
-- Running build/test/install/run/format/lint/codegen or any project script.
-- Any `git` write: `commit`, `add`, `checkout`, `switch`, `reset`, `stash`,
+- Writes into an **existing** file happen **only** inside the managed block
+  `<!-- phase0:start -->…<!-- phase0:end -->`. Prose outside the markers is never
+  edited, reordered, or removed.
+- A fresh file (virgin repo) is created whole; an existing one is merged, not
+  recreated.
+- **`docs/adr/` and `CONTEXT.md` are additive:** ADR-0001 is written only if no
+  methodology ADR already exists; terms are added, not replaced.
+- **`CLAUDE.md` is not duplicated:** if it exists, respect it and ensure it routes
+  to `AGENTS.md` (the canonical entrypoint).
+- Re-running replaces only the managed block → **idempotent**: a second run
+  changes nothing outside it.
+
+## Dry-run and consent
+
+- Consent gates **surface** writes: because root files are touched, every run
+  **previews** the proposed writes to `AGENTS.md` / `CONTEXT.md` / `docs/adr/`
+  (a dry-run diff: which files, which managed blocks) and waits for **explicit
+  consent** before writing them. The sensor's internal `.ai/phase0/scan.json`
+  (machine-readable audit output, no human prose, idempotent overwrite) is written
+  without a prompt — it is the sensor running, not a surface edit.
+- State detection gates this too: an **already-bootstrapped** repo is declined
+  with a top-up offer rather than overwritten (see the SKILL.md contract).
+
+## Still forbidden (unchanged from read-only days)
+
+- Editing / creating / deleting any path **outside the write set** — especially
+  source code.
+- Running build / test / install / run / format / lint / codegen, or any project
+  script or binary from the target repo.
+- Any **git write**: `commit`, `add`, `checkout`, `switch`, `reset`, `stash`,
   `clean`, `rebase`, `merge`, `push`, `pull`, `tag`, `restore`.
-- Package manager installs (`npm/pnpm/yarn/pip/uv/poetry/go/cargo/mvn/gradle …`).
-- Executing scripts or binaries from the target repo.
-- Reading or copying real secret **values** (see below).
+- Mutating the **remote or infra**: creating labels, branches, or PRs; applying
+  Terraform/k8s; running migrations. Day zero **documents and offers** consented
+  snippets (e.g. `gh label create`), it does not execute them.
+- Package-manager installs (`npm/pnpm/yarn/pip/uv/poetry/go/cargo/mvn/gradle …`).
 - Network calls that download dependencies or mutate remote state.
 
 ## Dangerous commands (never run)
 
-These are illustrative, not exhaustive — the principle (no mutation, no
-execution) governs. Treat anything resembling these as forbidden:
+Illustrative, not exhaustive — the principle (no source mutation, no execution,
+no remote/infra change) governs:
 
-- `rm`, `mv`, `cp` into the repo, `>`/`>>` redirection into repo files,
-  `sed -i`, `truncate`, `chmod`, `chown`.
+- `rm`, `mv`, `cp` over repo files, `>`/`>>` redirection into files outside the
+  write set, `sed -i`, `truncate`, `chmod`, `chown`.
 - `npm install`, `pip install`, `make`, `./gradlew`, `docker build/run`,
   `terraform apply`, `kubectl apply`, `prisma migrate`, `alembic upgrade`.
 - `git commit/push/reset --hard/clean -fd/checkout .`.
 - `curl`/`wget` that POST/PUT/DELETE or download into the tree.
 
+## The scan script is LLM-free; the interview is agentic
+
+The old "no LLM at all" rule is relaxed and **split**:
+
+- **`resources/scan.py`** (the read-only sensor) stays **deterministic and
+  LLM-free** — same input, same `scan.json`. No model calls, no network.
+- **The interview and the write phase are agentic by nature** — an agent reasons
+  over the scan, asks the maintainer, and drafts the surface. That is expected,
+  not a violation. The agent still obeys the write set, markers, and consent
+  rules above.
+
 ## Secrets handling
 
 - If a real secret is found (`.env` with values, keys, tokens), record only its
-  **existence and location** as a risk in `risk-register.md`. Never read,
-  reproduce, paste, or transmit the value.
-- `.env.example` and schema files may be read to understand required config.
-- Redact any incidental secret/PII from all output (esp. `agent-handoff.md`).
+  **existence and location** — as an open question or risk line in the surface,
+  never the value. `.env.example` and schema files may be read to understand
+  required config.
+- Redact any incidental secret/PII from all written output.
 
 ## How to handle uncertainty
 
-- If unsure whether an action mutates state or has side effects → **do not do
-  it**; record an `[OPEN]` question instead.
-- If a fact cannot be verified read-only → downgrade it to `[INFERENCE]` or
-  `[ASSUMPTION]` with the reason, never assert it as `[FACT]`.
-- If the repo is too large to inspect fully → sample breadth-first and record the
-  sampling boundary in `manifest.yaml.coverage` and as an `[ASSUMPTION]`.
+- Unsure whether an action mutates state, has side effects, or falls outside the
+  write set → **don't do it**; record an `[OPEN]` question.
+- A fact that cannot be verified read-only → downgrade to `[INFERENCE]` /
+  `[ASSUMPTION]` with the reason, or take it to the interview; never assert it as
+  `[FACT]`.
+- Repo too large to inspect fully → sample breadth-first and record the sampling
+  boundary as an `[ASSUMPTION]`.
 - Prefer "unknown" over a confident guess.
 
 ## Self-check (run before finishing)
 
-- `git status` confirms changes are confined to `.ai/phase0/`.
-- No forbidden command was executed.
-- No secret value appears anywhere in the output.
+- `git status` confirms changes are confined to the write set (`AGENTS.md`,
+  `CONTEXT.md`, `docs/adr/*`, `.ai/phase0/*`).
+- Every edit to a pre-existing file is inside `<!-- phase0:start -->…<!-- phase0:end -->`.
+- A re-run produces no diff outside the managed blocks (idempotent).
+- No forbidden command ran; no remote/infra was mutated; no secret value appears
+  in any written file.
