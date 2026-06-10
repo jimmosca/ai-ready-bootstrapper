@@ -4,6 +4,23 @@ All notable changes to `phase0-bootstrapper` are documented here. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — convention-bootstrapper pivot
+
+### Changed
+
+- Deliverable is now the **living convention surface** (`AGENTS.md` + `CONTEXT.md`
+  + `docs/adr/`) instead of the bespoke 11-file `.ai/phase0/` pack.
+- `scripts/scan.py` replaces `src/phase0_bootstrapper/` (scanner + renderer +
+  CLI + models); the `phase0` CLI and packaging are retired.
+- SKILL.md ×2 rewritten to the infer → interview → write flow with state
+  detection and `--no-interview` degradation.
+- Evidence model: `E#` ledger and `evidence-map.md` retired; inline `path:line`
+  citations + explicit open questions.
+- Safety model: writes now confined to `AGENTS.md`, `CONTEXT.md`, `docs/adr/*`,
+  `.ai/phase0/scan.json`; merged via managed markers; explicit consent gate.
+
+---
+
 ## [0.1.0] — 2026-06-08
 
 First MVP release. Read-only repository analysis that compiles a Phase 0 context

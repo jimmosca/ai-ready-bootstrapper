@@ -58,26 +58,36 @@ the foot of this file).
 
 ## 1. Project purpose
 
-`phase0-bootstrapper` performs **read-only repository analysis** and produces
-**evidence-based outputs**: it lets a coding agent enter an unknown/legacy repo
-**without modifying it** and compile a Phase 0 context pack at the target repo's
-`.ai/phase0/` (11 files). It is a **context compiler for coding agents, not a
-documentation generator** — the Research artifact a future agent starts from.
+`phase0-bootstrapper` is a **day-zero installer of the living convention
+surface**: it carries an unknown/legacy repo to the standard conventions
+(`AGENTS.md` + `CONTEXT.md` + `docs/adr/`) via **infer → interview → write**,
+and installs an Upkeep Contract so the surface stays current. It is a
+**convention bootstrapper for humans and AI alike**, not a documentation
+generator and not a context pack compiler.
 
 Parts: the **Claude Code skill** (`.claude/skills/phase0-bootstrapper/`), a
 **portable agent skill** (`skills/phase0-bootstrapper/`, self-contained
-`SKILL.md` + `resources/`), and a **Python package + `phase0` CLI**
-(`src/phase0_bootstrapper/`).
+`SKILL.md` + `resources/`), and **`scripts/scan.py`** — the standalone,
+read-only sensor that emits structured JSON.
 
 ## 2. Non-negotiable principles
 
-- **Read-only target analysis** — the only write is the target's `.ai/phase0/`.
-- **Evidence-backed claims** — every fact cites `path:line` or a read-only
-  command, resolving via `evidence-map.md`.
+- **Read-only target analysis** — writes confined to `AGENTS.md`, `CONTEXT.md`,
+  `docs/adr/*`, and `.ai/phase0/scan.json` in the target repo; never touch
+  source code, build artefacts, or anything else.
+- **Merge via managed markers** — only the
+  `<!-- phase0:start -->…<!-- phase0:end -->` block is rewritten; prosa outside
+  is never touched.
+- **Dry-run / explicit consent** before any write (target-root files are
+  high-blast-radius).
+- **Evidence-backed claims** — confirmed facts carry an inline `path:line`;
+  unconfirmed claims → explicit open question. No `E#` ledger, no
+  `evidence-map.md`.
 - **No hallucinated architecture** — names are not behavior; prefer "unknown"
   to a confident guess. No invented components, versions, flags, endpoints, ADRs.
 - **No source repo modifications during Phase 0** — never edit, run, or install.
-- **MVP over framework complexity** — lean artifacts, then stop.
+- **Lean artifacts, then stop** — MVP scope; day-N upkeep is delegated to the
+  installed Upkeep Contract.
 
 Full rules: [`docs/phase0-contract.md`](docs/phase0-contract.md),
 [`docs/safety-policy.md`](docs/safety-policy.md),
@@ -85,40 +95,33 @@ Full rules: [`docs/phase0-contract.md`](docs/phase0-contract.md),
 
 ## 3. Development commands
 
-Managed with [`uv`](https://docs.astral.sh/uv/); `src/` layout.
+Managed with [`uv`](https://docs.astral.sh/uv/).
 
 ```bash
-uv sync                 # create the venv and install deps
-uv run pytest           # tests must pass
-uv run ruff check .     # lint must pass
-uv run ruff format .    # format
-uv run phase0 --help    # the CLI
+uv sync                              # create the venv and install deps
+uv run pytest                        # tests must pass
+uv run ruff check .                  # lint must pass
+uv run ruff format .                 # format
+python scripts/scan.py <repo-path>   # read-only scan → prints JSON, persists .ai/phase0/scan.json
+python scripts/scan.py --no-write <repo-path>  # scan without persisting
 ```
 
-`phase0 scan --repo-path R` runs the full read-only pipeline (scan → render →
-write) and writes `R/.ai/phase0/`. Flags: `--output-dir`, `--dry-run` (writes
-nothing), `--force` (overwrite non-empty output), `--format text|json` (summary
-only). The only filesystem write is the output dir.
+`scripts/scan.py` is the standalone sensor: read-only, stdlib-only, no LLM.
+It emits a structured JSON inventory (languages, file tree, manifests,
+detected commands, secret locations, state-detection flags). The only write
+is `.ai/phase0/scan.json` in the target repo (skipped with `--no-write`).
 
 ## 4. Architecture notes
 
-Modules under `src/phase0_bootstrapper/`:
-
-- **`cli.py`** — entrypoint; wires `scan`, prints the concise summary.
-- **`scanner.py`** — read-only inspection: path safety, ignored-dir pruning,
-  size-limited reads, project-type / important-file / command detection.
-- **`renderer.py`** — compiles the scan into a `Phase0Report` and writes the
-  11 files (`build_pack` returns the pack without writing; `generate` writes).
-- **evaluator** — quality/self-check logic: `Phase0Report.validate()` rejects
-  dangling evidence refs; the manifest scorecard records what could not be
-  determined. (Currently part of `renderer.py`/`models.py`, not a separate
-  module — keep it that way unless a task says otherwise.)
-- **`safety.py`** — read-only guardrails: output dir, ignored dirs,
-  dangerous-path refusal, read size limit.
-- **`models.py`** — data models (`Finding`, `Risk`, `OpenQuestion`,
-  `Phase0Report`).
+- **`scripts/scan.py`** — standalone, stdlib-only sensor: read-only inspection
+  (path safety, ignored-dir pruning, size-limited reads, project-type /
+  important-file / command detection, glossary-candidate extraction,
+  state-detection). Emits JSON to stdout and optionally persists
+  `.ai/phase0/scan.json`. No package, no pip install required.
 - **Skill packaging** — `skills/phase0-bootstrapper/` (portable) and
-  `.claude/skills/phase0-bootstrapper/` (Claude Code) wrap the same workflow.
+  `.claude/skills/phase0-bootstrapper/` (Claude Code) wrap the three-phase
+  workflow (infer → interview → write) and reference `scripts/scan.py`
+  as the sensor step.
 
 ## 5. Testing expectations
 
@@ -127,14 +130,16 @@ Modules under `src/phase0_bootstrapper/`:
   They are static-analysis input only; they must not require installation.
 - **Avoid external services** — no network, no databases.
 - **Deterministic tests first** — same input, same output; no time/order flakiness.
-- **No LLM calls in tests** (none in the MVP at all — see §7).
+- **No LLM calls in tests** — `scripts/scan.py` is deterministic; the
+  interview phase is agentic but exercised manually, not in the suite.
 
 ## 6. Output quality rules
 
 - **Distinguish epistemics** — tag every claim `[FACT]` / `[INFERENCE]` /
   `[ASSUMPTION]` / `[OPEN]` per [`docs/evidence-policy.md`](docs/evidence-policy.md).
-- **Every important claim needs evidence** — a `[FACT]` without an `E#` is a bug;
-  downgrade it. Detected commands are `[INFERENCE]` unless found verbatim in a
+- **Every confirmed claim needs evidence** — a confirmed fact carries an inline
+  `path:line`; unconfirmed claims become explicit open questions, not confident
+  assertions. Detected commands are `[INFERENCE]` unless found verbatim in a
   manifest, and are never executed.
 - **Confidence must be explicit for inferred claims** — low-confidence
   inferences also raise an `[OPEN]`. Output stays lean and gotcha-first.
@@ -143,7 +148,9 @@ Modules under `src/phase0_bootstrapper/`:
 
 - **No vector DB.**
 - **No external service dependency** (runtime stays Python stdlib only).
-- **No LLM integration in the MVP.**
+- **`scripts/scan.py` must stay deterministic and LLM-free** — the sensor is
+  the only path that must be reproducible without an agent. The interview and
+  write phases are agentic by design (expected, not forbidden).
 - **No destructive commands** on target repos (build/test/install/run/format/
   codegen, git writes, package installs) — see [`docs/safety-policy.md`](docs/safety-policy.md).
 - **No broad framework rewrite** — keep changes minimal and contract-driven.
@@ -152,25 +159,24 @@ Modules under `src/phase0_bootstrapper/`:
 
 - [ ] `uv run pytest` passes; `uv run ruff check .` clean.
 - [ ] Output stays concise (lean, gotcha-first; no filler, no duplication).
-- [ ] Safety policy respected (read-only; only write is `.ai/phase0/`).
+- [ ] Safety policy respected — writes confined to `AGENTS.md`, `CONTEXT.md`,
+      `docs/adr/*`, `.ai/phase0/scan.json`; merge via managed markers only.
 - [ ] Docs updated when the contract changes — keep `docs/`,
       `.claude/skills/phase0-bootstrapper/`, and `skills/phase0-bootstrapper/`
       consistent. The portable skill's
       `resources/{output-schema,safety-policy,evidence-policy}.md` are copies of
-      the canonical `docs/` versions; keep them in sync. Bump `schema_version`
-      in `manifest.yaml` (template) and `docs/output-schema.md` when the file set
-      or sections change.
+      the canonical `docs/` versions; keep them in sync.
 
 ## Read these BEFORE making changes
 
 1. [`docs/phase0-contract.md`](docs/phase0-contract.md) — what Phase 0 does /
-   doesn't do, input/output contract, read-only guarantee, consumers.
-2. [`docs/output-schema.md`](docs/output-schema.md) — the 11 output files:
-   purpose, required sections, what to exclude, skeletons.
+   doesn't do, input/output contract, three-phase flow, safety model, consumers.
+2. [`docs/output-schema.md`](docs/output-schema.md) — artifact shapes and
+   skeletons for the living convention surface (`AGENTS.md`, `CONTEXT.md`, ADR).
 3. [`docs/safety-policy.md`](docs/safety-policy.md) — allowed vs. forbidden
-   operations, dangerous commands, handling uncertainty.
+   operations, write set, managed-marker merge, dry-run/consent gate.
 4. [`docs/evidence-policy.md`](docs/evidence-policy.md) — fact / inference /
-   assumption / open question, confidence levels, evidence format,
+   assumption / open question, confidence levels, inline `path:line` citations,
    anti-hallucination rules.
 
 Design lineage and rationale: see [`README.md`](README.md).

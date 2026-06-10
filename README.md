@@ -1,200 +1,132 @@
 # phase0-bootstrapper
 
-An **Agent Skill** that lets a coding agent enter an unknown / legacy repository
-in **read-only** mode and compile a reliable **Phase 0 context pack** — the
-research foundation a future coding agent starts from.
+A **day-zero installer of the living convention surface**: it carries an
+unknown or legacy repository to the standard conventions — `AGENTS.md` +
+`CONTEXT.md` + `docs/adr/` — via **infer → interview → write**, and installs
+an **Upkeep Contract** so the surface stays current. It is a convention
+bootstrapper for humans and AI alike, not a documentation generator.
 
-It does **not** modify the target repo. It inspects, maps, infers cautiously,
-captures evidence, flags risks, and produces a structured handoff under
-`.ai/phase0/`.
+> Phase 0 = the Research day before implementation begins. The bootstrapper
+> installs the shared language and methodology a team — human and agent — needs
+> to work well together. Then it stops.
 
-> This is not a documentation generator. It is a **context compiler for coding
-> agents**: lean, evidence-backed, with facts / inferences / assumptions / open
-> questions kept strictly separate.
-
-## What it produces
+## What it installs
 
 ```
-.ai/phase0/
-  manifest.yaml                      # machine-readable index + readiness scorecard
-  repo-map.md                        # languages, layout, manifests, generated areas
-  commands-and-tooling.md            # build/test/run + verification surface
-  entrypoints.md                     # where execution begins
-  architecture.md                    # inferred components & data flow
-  risk-register.md                   # ranked risks (incl. secrets, test gaps)
-  safe-change-boundaries.md          # where it's safe vs. dangerous to edit
-  decision-log.md                    # ADR-style: decision / why / how enforced
-  assumptions-and-open-questions.md  # the highest-value unknowns
-  evidence-map.md                    # every fact → path:line traceability
-  agent-handoff.md                   # lean entrypoint for the next agent
+AGENTS.md            # routing + canonical commands + Upkeep Contract
+CONTEXT.md           # shared glossary (lazy: only if terms emerge from the interview)
+docs/adr/            # durable decisions (lazy: only confirmed, hard-to-reverse calls)
+.ai/phase0/scan.json # sensor output for audit / re-bootstrap (internal, read-only)
 ```
 
-## Core philosophy
+Everything rises to these three standard files, leaves as an issue, or is
+dropped. No bespoke artifact tree; no parallel taxonomy to maintain.
 
-1. **Read-only first** — the only write is the new `.ai/phase0/` folder.
-2. **Evidence over vibes** — every fact cites `path:line` or a read-only command.
-3. **Separate epistemics** — `[FACT]` / `[INFERENCE]` / `[ASSUMPTION]` / `[OPEN]`.
-4. **Lean beats exhaustive** — gotcha lists, not tutorials; more context hurts.
-5. **MVP, no overengineering** — eleven solid artifacts, then stop.
+The installed **Upkeep Contract** (a section of `AGENTS.md`) defines the
+triggers that keep the surface current going forward — most changes trigger
+nothing; the contract fires only on decisions, new terms, or verification
+changes.
 
-> **Status: v0.1 MVP.** See [`docs/v0.1-scope.md`](docs/v0.1-scope.md) for exactly
-> what is and isn't supported, [`docs/demo.md`](docs/demo.md) for a 2-minute
-> walkthrough, and [`CHANGELOG.md`](CHANGELOG.md) for release notes.
+## How to use it
 
-## Install
+### As a Claude Code skill
 
-Requirements: **Python ≥ 3.10** and [`uv`](https://docs.astral.sh/uv/). There are
-**no runtime dependencies** — the package uses only the Python standard library.
+The skill is available automatically when Claude Code runs in this repo. To
+install it globally or copy it into another project:
 
 ```bash
-git clone <this-repo> && cd ai-ready-bootstrapper
-uv sync                 # create .venv and install the package + dev tools
-uv run phase0 --help    # verify the CLI is wired up
-```
-
-## Two ways to use it
-
-### As a CLI
-
-A small Python package (`src/` layout, managed with
-[`uv`](https://docs.astral.sh/uv/)) exposes a `phase0` command. `phase0 scan`
-runs the full read-only pipeline — walk (path safety, ignored-dir pruning,
-≤1 MB reads, project-type/command detection) → compile an evidence-backed
-report → write the 11-file pack. The only filesystem write is the output
-directory.
-
-```bash
-uv run phase0 --help                                  # show the CLI
-uv run phase0 scan --repo-path /path/to/repo          # writes <repo>/.ai/phase0/
-```
-
-`scan` options: `--output-dir DIR` (override the default `<repo>/.ai/phase0/`),
-`--dry-run` (inspect and print a summary, write nothing), `--force` (overwrite a
-non-empty output dir), `--format text|json` (terminal summary only — never the
-generated documents).
-
-### As an agent skill (Claude Code, Codex, …)
-
-Two ready-to-install skill packages ship in this repo:
-
-- `.claude/skills/phase0-bootstrapper/` — Claude Code skill (templates +
-  references); available automatically when Claude Code runs in this repo.
-- `skills/phase0-bootstrapper/` — portable, self-contained skill: `SKILL.md`
-  plus bundled `resources/` (output schema, safety & evidence policies, and a
-  real example pack). Copy it into any agent's skills directory.
-
-```bash
-# Claude Code, for use on any repo:
+# Claude Code global install:
 cp -r .claude/skills/phase0-bootstrapper ~/.claude/skills/
 
-# Codex / other agents:
+# Portable skill (any agent):
 cp -r skills/phase0-bootstrapper <your-agent-skills-dir>/
 ```
 
-Then open the target repo and ask: *"Bootstrap this repo / generate a Phase 0
-context pack."* The skill runs the read-only workflow — using the `phase0` CLI
-when installed, otherwise the same steps by hand — and writes `.ai/phase0/`.
-Review `agent-handoff.md` first; everything else links from there and from
-`manifest.yaml`.
+Then open the target repo and invoke: *"Bootstrap this repo."* The skill runs
+the three-phase workflow:
 
-## Example
+1. **Infer** — runs `python scripts/scan.py` (read-only sensor), builds an
+   internal draft of facts (`path:line`), inferences (with confidence), and
+   open questions. Writes nothing.
+2. **Interview** — surfaces open questions and low-confidence inferences to a
+   maintainer; answers promote inferences to facts, reveal decisions (→ ADR),
+   and capture domain terms (→ `CONTEXT.md`).
+3. **Write (lazy, merged)** — seeds only artifacts with real content, in their
+   standard locations, via managed markers. Shows a dry-run preview and asks
+   for consent before any write.
 
-Invocation:
+With `--no-interview`: writes `AGENTS.md` (methodology + canonical commands)
+and `docs/adr/0001-adopt-living-convention-methodology.md` from inferred facts,
+marks everything unconfirmed as explicit open questions, and skips `CONTEXT.md`
+and repo-specific ADRs.
+
+### Optional: run the sensor first
+
+`scripts/scan.py` is a standalone, stdlib-only, LLM-free read-only sensor.
+Run it before invoking the skill for a quick inventory, or as part of CI:
 
 ```bash
-$ phase0 scan --repo-path ./python_fastapi_repo
+python scripts/scan.py /path/to/repo            # prints JSON, persists .ai/phase0/scan.json
+python scripts/scan.py --no-write /path/to/repo  # prints JSON only
 ```
 
-Terminal summary (`--format text`):
+## Not in scope
 
-```
-phase0 scan summary
-  repo path:       /path/to/python_fastapi_repo
-  project types:   Python
-  output path:     /path/to/python_fastapi_repo/.ai/phase0
-  findings:        2
-  risks:           0
-  open questions:  3
-  next step:       Research → Plan: resolve the open questions (esp. how changes are verified) before implementing.
+**Day-N upkeep is delegated** — the Upkeep Contract installed by the
+bootstrapper references ecosystem skills for maintenance:
 
-Start at agent-handoff.md. See docs/phase0-contract.md.
-```
+- [`grill-with-docs`](https://github.com/mattpocock/skills) — stress-test plans
+  against the living surface; crystallize new ADRs and terms inline.
+- [`to-prd`](https://github.com/mattpocock/skills) — promote open questions to
+  a PRD / feature spec.
+- [`improve-codebase-architecture`](https://github.com/mattpocock/skills) —
+  propose structural changes against the established terminology.
 
-This writes `.ai/phase0/` with the 11 files. The generated `agent-handoff.md`
-(excerpt):
-
-```markdown
-# Agent Handoff
-
-## What this repo is
-python_fastapi_repo — Python; languages: Python.
-
-## Commands (detected, NOT executed)
-Nothing was run — this is a read-only pack.
-**Inferred ([INFERENCE], verify before trusting):** pytest, ruff check, ruff format, mypy .
-
-## Biggest unknowns
-- What is the project's purpose and who owns it?
-- How are changes validated before merge (tests/CI)?
-- What is the primary runtime entrypoint and deployment target?
-```
-
-A full, unedited example pack lives in
-[`skills/phase0-bootstrapper/resources/examples/minimal-output/`](skills/phase0-bootstrapper/resources/examples/minimal-output/).
+The bootstrapper does not run build/test/install/run/format/codegen commands,
+mutate the remote or infra, or perform ongoing maintenance.
 
 ## Safety model
 
-The tool is **read-only on the target repo** and runs **offline** — no LLM, no
-network, no external services. Enforced in code (see
-[`docs/safety-policy.md`](docs/safety-policy.md)):
+The sensor (`scripts/scan.py`) is **read-only and offline** — no LLM, no
+network. The write phase is confined to:
 
-- **Only write path:** `<repo>/.ai/phase0/`. It refuses to write to the repo
-  root, anywhere in the source tree, or a system/home root.
-- **No execution:** no command is ever run — build/test/install/run/format/
-  codegen and project scripts are detected, never executed, and `git` is never
-  written to.
-- **Bounded reads:** files > 1 MB, binaries, and symlinks are skipped; ignored
-  cache/vendored/build dirs are pruned; the walk cannot escape the repo.
-- **Secrets:** `.env`, private keys, and credential files are flagged by
-  **location only** in `risk-register.md` — their contents are never read,
-  rendered, or printed (`.env.example` / `*.pub` are treated as safe).
-- **Refuses dangerous targets:** non-existent paths and system/home roots.
+- `AGENTS.md`, `CONTEXT.md`, `docs/adr/*` in the target repo — merged via
+  `<!-- phase0:start -->…<!-- phase0:end -->` managed markers; prosa outside
+  the block is never touched.
+- `.ai/phase0/scan.json` — the sensor output artefact.
+
+A dry-run preview + explicit consent gate fires before any write. Secrets are
+flagged by location only — their contents are never read, rendered, or printed.
+Full rules: [`docs/safety-policy.md`](docs/safety-policy.md).
 
 ## Development
 
 ```bash
-uv run pytest           # run the test suite
-uv run ruff check .     # lint
-uv run ruff format .    # format
-
-# try it against a bundled fixture (writes to a temp copy, not the source):
-cp -r tests/fixtures/python_fastapi_repo /tmp/demo
-uv run phase0 scan --repo-path /tmp/demo
+uv sync                              # create .venv and install dev tools
+uv run pytest                        # test suite
+uv run ruff check .                  # lint
+uv run ruff format .                 # format
+python scripts/scan.py tests/fixtures/python_fastapi_repo  # try the sensor
 ```
 
-The formal contract the implementation follows lives in [`docs/`](docs/) (see
-[`AGENTS.md`](AGENTS.md)): [`phase0-contract`](docs/phase0-contract.md),
-[`output-schema`](docs/output-schema.md), [`safety-policy`](docs/safety-policy.md),
-[`evidence-policy`](docs/evidence-policy.md), [`v0.1-scope`](docs/v0.1-scope.md),
-and [`demo`](docs/demo.md).
+The formal contract lives in [`docs/`](docs/); see [`AGENTS.md`](AGENTS.md)
+for pointers. Status and limitations: [`docs/v0.1-scope.md`](docs/v0.1-scope.md).
 
 ## Layout
 
 ```
 AGENTS.md / CLAUDE.md       # agent guidance → routes to docs/
-CHANGELOG.md                # release notes (v0.1)
-docs/                       # contract + scope + demo (phase0/output/safety/evidence/v0.1-scope/demo)
+CHANGELOG.md                # release notes
+docs/                       # contract, output schema, safety & evidence policy, scope, demo
+scripts/scan.py             # standalone read-only sensor (stdlib-only, no pip install)
 pyproject.toml              # uv project + ruff + pytest config
-src/phase0_bootstrapper/    # cli.py, models.py, scanner.py, renderer.py, safety.py
-tests/                      # pytest (+ tests/fixtures/ sample repos)
+tests/                      # pytest + tests/fixtures/ sample repos
 .claude/skills/phase0-bootstrapper/   # Claude Code skill
-  SKILL.md                  # orchestrator: principles, read-only contract, workflow
-  references/               # output-spec.md, inspection-playbook.md
-  templates/                # lean skeletons for each output file
-skills/phase0-bootstrapper/           # portable Codex/agent skill (self-contained)
-  SKILL.md                  # operational workflow + safety limits
-  resources/                # output-schema, safety-policy, evidence-policy
-    examples/minimal-output/  # a real, unedited generated pack
+  SKILL.md                  # orchestrator: three-phase flow, state detection, degradation
+  resources/                # output-schema, safety-policy, evidence-policy, templates, example
+skills/phase0-bootstrapper/           # portable skill (any agent, self-contained)
+  SKILL.md                  # same workflow, self-contained
+  resources/                # output-schema, safety-policy, evidence-policy, templates, example
 ```
 
 ## Design lineage
@@ -212,5 +144,7 @@ The methodology distills several AI-engineering talks:
   with progressive disclosure.
 - **Matt Pocock, "Workflow for AI Coding"** + his
   [`skills`](https://github.com/mattpocock/skills) repo — compact imperative
-  skills; handoffs reference artifacts instead of duplicating them.
-- **Michal Cichra, "BDD, ADR, PRD"** — decisions as what / why / **how enforced**.
+  skills; handoffs reference artifacts instead of duplicating them; living
+  convention surface (`AGENTS.md` / `CONTEXT.md` / `docs/adr/`).
+- **Michal Cichra, "BDD, ADR, PRD"** — decisions as what / why / **how
+  enforced**; capturing shared language for humans and AI alike.
