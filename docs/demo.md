@@ -35,7 +35,7 @@ python scripts/scan.py /tmp/demo        # prints scan.json to stdout
 ```
 
 The sensor walks the repo read-only and emits the inventory — languages, top-level
-listing, manifests, detected commands, secret locations, glossary-term candidates, and the
+listing, manifests, detected commands, secret locations, glossary candidates, and the
 **detected state** (virgin / partial / already-bootstrapped). It writes nothing
 except (optionally) `/tmp/demo/.ai/phase0/scan.json` for audit.
 

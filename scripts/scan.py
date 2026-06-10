@@ -616,7 +616,8 @@ def _glossary_candidates(root: Path, rels: list[str]) -> list[dict]:
     """
     bucket: dict[tuple[str, str], dict] = {}
 
-    # Directories: non-generic basenames anywhere in the tree.
+    # Directories: non-generic basenames anywhere in the tree. ``occurrences``
+    # counts files living under a dir of that name — a rough prominence proxy.
     for rel in rels:
         for part in Path(rel).parent.parts:
             if (
