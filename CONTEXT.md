@@ -49,3 +49,15 @@ _Avoid:_ "how to build" in prose.
 The size of a change's impact; it grades how much Plan a change earns and when to
 stop and ask.
 _Avoid:_ risk (too generic).
+
+### Sensor
+The deterministic, LLM-free script (`scripts/scan.py`) that inspects a target
+repo read-only and emits the internal `scan.json` — signals and candidates, not
+judgements. Same input, same output; the agentic skill interprets what it reports.
+_Avoid:_ scanner, generator.
+
+### Glossary candidate
+A name the Sensor surfaces — a directory, a declaration, a README heading — that
+might be a domain term. A candidate carries sources, not a meaning: only the
+interview can confirm it into `CONTEXT.md`. Names are not behavior.
+_Avoid:_ glossary term, definition.

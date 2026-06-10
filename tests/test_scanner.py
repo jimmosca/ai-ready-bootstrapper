@@ -1,4 +1,8 @@
-"""Unit tests for the read-only scanner, using on-disk fixture repos."""
+"""Unit tests for the read-only sensor (`scripts/scan.py`), via fixture repos.
+
+The sensor returns the `scan.json` payload as a plain dict; these tests assert
+against that dict (the versioned interface the skill consumes).
+"""
 
 from __future__ import annotations
 
@@ -7,8 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from phase0_bootstrapper.models import FindingType, ScanTarget
-from phase0_bootstrapper.scanner import scan, scan_repo
+from scan import MAX_READ_BYTES, _command, _read_text, scan_repo
 
 
 def _write(path: Path, content: str = "") -> None:
@@ -34,19 +37,22 @@ def test_refuses_missing_path(tmp_path):
         scan_repo(tmp_path / "nope")
 
 
-def test_scan_accepts_scan_target(python_repo):
-    target = ScanTarget(repo_path=python_repo, output_dir=python_repo / ".ai" / "phase0")
-    result = scan(target)
-    assert result.inventory.name == python_repo.name
+def test_inferred_command_must_carry_confidence():
+    # The discipline of the retired CommandInfo invariant, kept on plain dicts.
+    with pytest.raises(ValueError):
+        _command("test", "pytest", "pyproject.toml", "inference", confidence=None)
+    assert _command("test", "pytest", "pyproject.toml", "inference", "medium")["confidence"]
 
 
 def test_inventory_basics(python_repo):
     result = scan_repo(python_repo)
-    inv = result.inventory
-    assert inv.root == str(python_repo.resolve())
-    assert inv.vcs == "none"  # no .git in fixture
-    assert inv.file_count == 5
-    assert inv.languages[0] == "Python"
+    inv = result["repo"]
+    assert result["schema_version"] == "0.1"
+    assert inv["name"] == python_repo.name
+    assert inv["root"] == str(python_repo.resolve())
+    assert inv["vcs"] == "none"  # no .git in fixture
+    assert inv["file_count"] == 5
+    assert inv["languages"][0] == "Python"
 
 
 def test_ignored_directories_are_pruned(python_repo):
@@ -57,56 +63,59 @@ def test_ignored_directories_are_pruned(python_repo):
     _write(python_repo / "dist" / "demo-0.1.whl", "x")
 
     result = scan_repo(python_repo)
-    rels = {
-        rel
-        for paths in result.important_files.values()
-        for rel in paths
-    }
+    rels = {rel for paths in result["important_files"].values() for rel in paths}
     # File count is unchanged from the clean fixture: ignored dirs are skipped.
-    assert result.inventory.file_count == 5
+    assert result["repo"]["file_count"] == 5
     assert not any("node_modules" in r for r in rels)
+
+
+def test_ai_dir_is_ignored_for_idempotency(python_repo):
+    # A prior run's .ai/phase0/scan.json must not be counted or reported, so a
+    # second scan yields identical output (the sensor reports the repo, not itself).
+    _write(python_repo / ".ai" / "phase0" / "scan.json", "{}")
+    result = scan_repo(python_repo)
+    assert ".ai" not in result["excluded_dirs"]
+    assert ".ai" not in result["top_level"]
+    assert result["repo"]["file_count"] == 5
 
 
 def test_detects_python_project_and_files(python_repo):
     result = scan_repo(python_repo)
-    assert result.project_types == ["Python"]
-    assert "README.md" in result.important_files["readme"]
-    assert "pyproject.toml" in result.important_files["python_manifest"]
-    assert "tests/test_app.py" in result.important_files["tests"]
+    assert result["project_types"] == ["Python"]
+    assert "README.md" in result["important_files"]["readme"]
+    assert "pyproject.toml" in result["important_files"]["python_manifest"]
+    assert "tests/test_app.py" in result["important_files"]["tests"]
 
 
 def test_pyproject_commands_are_inferred(python_repo):
     result = scan_repo(python_repo)
-    by_cmd = {c.command: c for c in result.commands}
+    by_cmd = {c["command"]: c for c in result["commands"]}
     assert "pytest" in by_cmd
-    assert by_cmd["pytest"].finding_type is FindingType.INFERENCE
-    assert by_cmd["pytest"].confidence is not None
+    assert by_cmd["pytest"]["finding_type"] == "inference"
+    assert by_cmd["pytest"]["confidence"] is not None
     assert "ruff check" in by_cmd
 
 
 def test_node_repo_scripts_are_facts(tmp_path):
-    pkg = {
-        "name": "web",
-        "scripts": {"test": "vitest", "build": "tsc", "dev": "vite"},
-    }
+    pkg = {"name": "web", "scripts": {"test": "vitest", "build": "tsc", "dev": "vite"}}
     _write(tmp_path / "package.json", json.dumps(pkg))
     _write(tmp_path / "src" / "index.ts", "export const x = 1\n")
 
     result = scan_repo(tmp_path)
-    assert "Node/TypeScript" in result.project_types
-    cmds = {c.command: c for c in result.commands}
-    assert cmds["npm run test"].finding_type is FindingType.FACT
-    assert cmds["npm run test"].category == "test"
-    assert cmds["npm run build"].category == "build"
+    assert "Node/TypeScript" in result["project_types"]
+    cmds = {c["command"]: c for c in result["commands"]}
+    assert cmds["npm run test"]["finding_type"] == "fact"
+    assert cmds["npm run test"]["category"] == "test"
+    assert cmds["npm run build"]["category"] == "build"
 
 
 def test_makefile_targets_are_facts(tmp_path):
     _write(tmp_path / "Makefile", ".PHONY: test\ntest:\n\tpytest\nlint:\n\truff check\n")
     result = scan_repo(tmp_path)
-    cmds = {c.command for c in result.commands}
+    cmds = {c["command"] for c in result["commands"]}
     assert "make test" in cmds
     assert "make lint" in cmds
-    assert all(c.finding_type is FindingType.FACT for c in result.commands)
+    assert all(c["finding_type"] == "fact" for c in result["commands"])
 
 
 def test_mixed_and_iac_and_dbt_detection(tmp_path):
@@ -117,12 +126,12 @@ def test_mixed_and_iac_and_dbt_detection(tmp_path):
     _write(tmp_path / "notebooks" / "explore.ipynb", "{}")
 
     result = scan_repo(tmp_path)
-    assert "Terraform/IaC" in result.project_types
-    assert "dbt" in result.project_types
-    assert "data pipeline" in result.project_types
-    assert "mixed repo" in result.project_types
-    assert "main.tf" in result.important_files["terraform"]
-    assert "notebooks/explore.ipynb" in result.important_files["notebook"]
+    assert "Terraform/IaC" in result["project_types"]
+    assert "dbt" in result["project_types"]
+    assert "data pipeline" in result["project_types"]
+    assert "mixed repo" in result["project_types"]
+    assert "main.tf" in result["important_files"]["terraform"]
+    assert "notebooks/explore.ipynb" in result["important_files"]["notebook"]
 
 
 def test_head_commit_read_only_from_loose_ref(tmp_path):
@@ -132,10 +141,62 @@ def test_head_commit_read_only_from_loose_ref(tmp_path):
     _write(tmp_path / "README.md", "# x\n")
 
     result = scan_repo(tmp_path)
-    assert result.inventory.vcs == "git"
-    assert result.inventory.head_commit == sha
+    assert result["repo"]["vcs"] == "git"
+    assert result["repo"]["head_commit"] == sha
     # .git itself is ignored, so it contributes nothing to file_count.
-    assert result.inventory.file_count == 1
+    assert result["repo"]["file_count"] == 1
+
+
+# --- glossary candidates (names, not meanings) -------------------------------
+
+
+def test_glossary_candidates_propose_names_with_sources(python_repo):
+    _write(python_repo / "src" / "demo" / "service.py", "class OrderService:\n    pass\n")
+    cands = scan_repo(python_repo)["glossary_candidates"]
+    by_term = {(c["term"], c["kind"]): c for c in cands}
+
+    # A declaration becomes an identifier candidate, cited path:line.
+    ident = by_term[("OrderService", "identifier")]
+    assert ident["sources"] == ["src/demo/service.py:1"]
+    # A non-generic directory ("demo") is a directory candidate; "src" is generic.
+    assert ("demo", "directory") in by_term
+    assert ("src", "directory") not in by_term
+    # Candidates are ranked and capped.
+    assert len(cands) <= 40
+
+
+def test_glossary_skips_dotdirs_and_generic_dirs(python_repo):
+    _write(python_repo / ".github" / "workflows" / "ci.yml", "on: push\n")
+    terms = {c["term"] for c in scan_repo(python_repo)["glossary_candidates"]}
+    assert ".github" not in terms
+    assert "workflows" in terms  # a real dir name still surfaces
+
+
+# --- state detection ---------------------------------------------------------
+
+
+def test_state_virgin_repo(python_repo):
+    state = scan_repo(python_repo)["state"]
+    assert state["status"] == "virgin"
+    assert state["signals"]["agents_md"] is False
+    assert state["signals"]["upkeep_contract"] is False
+
+
+def test_state_partial_when_some_surface_present(python_repo):
+    _write(python_repo / "AGENTS.md", "# AGENTS\nno managed block here\n")
+    state = scan_repo(python_repo)["state"]
+    assert state["status"] == "partial"
+    assert state["signals"]["agents_md"] is True
+
+
+def test_state_already_bootstrapped(python_repo):
+    _write(python_repo / "AGENTS.md", "# AGENTS\n## Upkeep Contract\nkeep it current\n")
+    _write(python_repo / "CONTEXT.md", "# CONTEXT\n")
+    _write(python_repo / "docs" / "adr" / "0001-foo.md", "# 0001\n")
+    state = scan_repo(python_repo)["state"]
+    assert state["status"] == "already-bootstrapped"
+    assert state["signals"]["upkeep_contract"] is True
+    assert state["signals"]["adr_dir"] is True
 
 
 # --- safety: secret files, symlinks, binary, oversize ------------------------
@@ -147,31 +208,23 @@ def test_secret_files_are_flagged_not_read(python_repo):
     secret.write_text("API_TOKEN=super-secret-value\n")
 
     result = scan_repo(python_repo)
-    assert ".env" in result.secret_files
-    # The value must never surface anywhere in the scan result.
-    assert "super-secret-value" not in repr(result)
+    assert ".env" in result["secret_files"]
+    assert "super-secret-value" not in json.dumps(result)
 
 
 def test_read_text_skips_secret_files(python_repo):
-    from phase0_bootstrapper.scanner import _read_text
-
     secret = python_repo / "id_rsa"
     secret.write_text("-----BEGIN PRIVATE KEY-----\nMIIEv...\n")
     assert _read_text(secret) == ""
 
 
 def test_read_text_skips_binary(tmp_path):
-    from phase0_bootstrapper.scanner import _read_text
-
     blob = tmp_path / "image.bin"
     blob.write_bytes(b"\x89PNG\x00\x00\x00binary\x00data")
     assert _read_text(blob) == ""
 
 
 def test_read_text_skips_oversize(tmp_path):
-    from phase0_bootstrapper.safety import MAX_READ_BYTES
-    from phase0_bootstrapper.scanner import _read_text
-
     big = tmp_path / "huge.txt"
     big.write_bytes(b"a" * (MAX_READ_BYTES + 10))
     assert _read_text(big) == ""
@@ -188,9 +241,9 @@ def test_walk_does_not_follow_symlinked_files(python_repo, tmp_path):
         pytest.skip("symlinks unavailable on this platform")
 
     result = scan_repo(python_repo)
-    rels = {p for paths in result.important_files.values() for p in paths}
+    rels = {p for paths in result["important_files"].values() for p in paths}
     assert "linked.txt" not in rels
-    assert "OUTSIDE_SECRET" not in repr(result)
+    assert "OUTSIDE_SECRET" not in json.dumps(result)
 
 
 def test_walk_does_not_follow_symlinked_dirs(python_repo, tmp_path):
@@ -205,7 +258,5 @@ def test_walk_does_not_follow_symlinked_dirs(python_repo, tmp_path):
         pytest.skip("symlinks unavailable on this platform")
 
     result = scan_repo(python_repo)
-    rels = sorted(
-        p for paths in result.important_files.values() for p in paths
-    )
+    rels = {p for paths in result["important_files"].values() for p in paths}
     assert not any("linkdir" in r for r in rels)

@@ -33,9 +33,12 @@ edited, renamed, or deleted.
 
 ## Dry-run and consent
 
-- Because root files are touched, every run **previews** the proposed writes
+- Consent gates **surface** writes: because root files are touched, every run
+  **previews** the proposed writes to `AGENTS.md` / `CONTEXT.md` / `docs/adr/`
   (a dry-run diff: which files, which managed blocks) and waits for **explicit
-  consent** before writing anything.
+  consent** before writing them. The sensor's internal `.ai/phase0/scan.json`
+  (machine-readable audit output, no human prose, idempotent overwrite) is written
+  without a prompt — it is the sensor running, not a surface edit.
 - State detection gates this too: an **already-bootstrapped** repo is declined
   with a top-up offer rather than overwritten (see
   [phase0-contract.md](phase0-contract.md)).

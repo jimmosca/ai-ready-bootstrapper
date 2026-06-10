@@ -116,8 +116,30 @@ _Avoid:_ <wrong synonyms>
 
 ## Internal: .ai/phase0/scan.json
 
-Not part of the surface — the read-only sensor's machine-readable output,
-persisted for audit and re-bootstrap. It carries the inventory (languages, tree,
-manifests, detected commands, secret locations, glossary-term candidates, state
-detection). It is the only thing written outside `AGENTS.md` / `CONTEXT.md` /
-`docs/adr/`. See [safety-policy.md](safety-policy.md).
+Not part of the surface — the read-only **sensor**'s (`scripts/scan.py`)
+machine-readable output, persisted for audit and re-bootstrap. It is the only
+thing written outside `AGENTS.md` / `CONTEXT.md` / `docs/adr/`, and the only write
+exempt from the consent gate (see [safety-policy.md](safety-policy.md)). It is a
+**versioned interface** the skill consumes: this field list plus the sensor's
+tests are its contract (no separate JSON-Schema file).
+
+Top-level fields:
+
+- `schema_version`, `generator` — interface version and producer.
+- `repo` — `{name, root, vcs, head_commit, file_count, languages}`.
+- `project_types` — likely ecosystem(s); includes `"mixed repo"` when more than one.
+- `important_files` — category → relative paths (readme, manifests, tests, CI, …).
+- `commands` — detected build/test/lint/run commands, each
+  `{category, command, source, finding_type, confidence}`. Found verbatim in a
+  manifest → `fact`; inferred from tooling → `inference` with a confidence level
+  (never executed).
+- `top_level`, `excluded_dirs`, `secret_files` — the inspected top-level listing,
+  the ignored dirs pruned from the walk, and secret-bearing files (location only,
+  never read).
+- `glossary_candidates` — proposed domain-term candidates (names, not meanings),
+  each `{term, kind, occurrences, sources}` with `kind` ∈
+  `directory | identifier | readme`. Candidates only — the interview confirms them.
+- `state` — `{status, signals}`. `signals` are presence booleans
+  (`agents_md, claude_md, context_md, adr_dir, context_map, upkeep_contract`);
+  `status` (`virgin | partial | already-bootstrapped`) is a **presence-based hint**,
+  not a health verdict — the skill makes the final decline/top-up call.
