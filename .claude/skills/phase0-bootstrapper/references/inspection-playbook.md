@@ -1,8 +1,8 @@
 # Inspection playbook — signals by repo type
 
-Read-only signals to look for. Don't run anything; read files and cite
-`path:line`. Use Explore sub-agents for breadth on large repos and have them
-return compact, evidence-bearing summaries.
+Use these signals during the **Infer** phase to build the internal draft. Feed
+them to `scripts/scan.py` (sensor) or apply manually when the sensor is absent.
+Read-only throughout — cite `path:line`; never run anything.
 
 ## First, fingerprint the repo
 - `git ls-files | wc -l`, language mix (extensions), monorepo markers
@@ -55,18 +55,9 @@ return compact, evidence-bearing summaries.
 - Huge binaries/data in git; generated code committed without markers; dead code.
 - Tight coupling to a local/personal environment (hardcoded paths, ports, hosts).
 
-## Agent-readiness scorecard (Reyes)
-Rate each `present | partial | absent | unknown`, with one evidence note. This
-populates `manifest.yaml.agent_readiness` and the handoff:
-
-1. **Build** — can the project be built from a documented command?
-2. **Test** — is there a test suite and a way to run one test fast?
-3. **Lint/format/typecheck** — opinionated, enforced checks?
-4. **CI gates** — automated checks on PRs?
-5. **Environment setup/reset** — reproducible env (Docker/devcontainer/seed)?
-6. **Run locally** — documented way to start the app/job?
-7. **Docs/specs** — README/ADRs/specs that state intent + constraints?
-8. **Observability of correctness** — how does an agent *know* it succeeded?
-
-The lower the score, the more a future agent must rely on assumptions — call
-that out as the top risk in the handoff.
+## No verification loop found?
+If the scan finds **no** test/lint/typecheck/CI loop, do not silently skip the
+Verify rule. Instead, `AGENTS.md` must say so explicitly: "no automated
+verification found; high-risk changes; verify manually by [X]; **setting up
+verification is the first recommended task**." This is open question #1, not a
+dropped rule.
