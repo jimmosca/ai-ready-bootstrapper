@@ -444,10 +444,7 @@ def _commands_from_package_json(root: Path, rel: str) -> list[dict]:
     scripts = data.get("scripts") if isinstance(data, dict) else None
     if not isinstance(scripts, dict):
         return []
-    return [
-        _command(_categorize(name), f"npm run {name}", rel, "fact")
-        for name in scripts
-    ]
+    return [_command(_categorize(name), f"npm run {name}", rel, "fact") for name in scripts]
 
 
 def _commands_from_makefile(root: Path, rel: str) -> list[dict]:
@@ -658,9 +655,7 @@ def _state(root: Path) -> dict:
     """
     agents = root / "AGENTS.md"
     adr_dir = root / "docs" / "adr"
-    has_adr = adr_dir.is_dir() and any(
-        p.suffix.lower() == ".md" for p in adr_dir.glob("*.md")
-    )
+    has_adr = adr_dir.is_dir() and any(p.suffix.lower() == ".md" for p in adr_dir.glob("*.md"))
     # "Upkeep Contract" is searched in AGENTS.md only (pinned for determinism).
     has_upkeep = "Upkeep Contract" in _read_text(agents) if agents.is_file() else False
 

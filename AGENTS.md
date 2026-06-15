@@ -46,7 +46,9 @@ available, write the doc by hand to the same standard.
 Work in issue-sized **vertical slices**; one **branch + PR per slice**. Defaults
 (adopt the repo's own convention if it has one — here we use these): Conventional
 Commits, tiny and green; branch `<type>/<issue>-<slug>`; PR `Closes #N`,
-**squash-merge**; the Verify gate must pass before merge. Minimal labels:
+**squash-merge**; the Verify gate must pass before merge, and now runs in CI
+([`.github/workflows/verify.yml`](.github/workflows/verify.yml)) on every PR and
+push to `main`. Minimal labels:
 `ready-for-agent`, `needs-info`. Richer machinery (PRD→issues, triage) is
 available as skills (`to-prd`, `to-issues`, `triage`) — not mandatory. Why and
 the full rules: [ADR-0003](docs/adr/0003-github-working-methodology.md).
