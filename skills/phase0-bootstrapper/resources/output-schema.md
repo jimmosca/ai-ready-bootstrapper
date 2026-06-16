@@ -36,7 +36,10 @@ block (idempotent). See [safety-policy.md](safety-policy.md).
      verification found; high-risk changes; verify manually by X; **setting up
      verification is the first recommended task**") — that is open question #1.
   3. **How we work here** — the RPI+Verify loop in ~5 bullets, weight on the
-     extremes; names the skills used (`grill-me` / `tdd` / `grill-with-docs`).
+     extremes; names the skills used (`grill-me` / `tdd` / `grill-with-docs`). The
+     Verify bullet carries the run discipline: run the suite when something it
+     *executes* changed (not docs/comments) and once as the pre-push gate; never
+     re-run a green deterministic suite just to recover its output.
   4. **Start here** — pointers into the repo (where to begin reading), not copies.
   5. **Upkeep Contract** — the trigger-driven clause that keeps the surface
      current (ADR / new term / changed verification or "Start here" pointer →

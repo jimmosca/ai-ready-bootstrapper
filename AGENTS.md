@@ -25,6 +25,10 @@ Work loop — **Research → Plan → Implement → Verify**, weight on the extr
   are the safety net; loop validate → fix → repeat. Framework-agnostic: prefer
   example-based acceptance tests in the repo's existing framework; BDD is not
   imposed ([ADR-0002](docs/adr/0002-no-enforcing-bdd.md)), only run if already present.
+  Run the suite when something it *executes* changed (code, tests, config it reads
+  — **docs and comments don't count**), and once more as the final pre-push gate
+  (especially after rebase/squash/reset). **Never re-run a green deterministic
+  suite just to recover its output** — capture it the first time.
 
 ### Upkeep Contract
 
@@ -161,7 +165,8 @@ is `.ai/phase0/scan.json` in the target repo (skipped with `--no-write`).
 
 ## 8. Review checklist
 
-- [ ] `uv run pytest` passes; `uv run ruff check .` clean.
+- [ ] `uv run pytest` passes; `uv run ruff check .` clean — run once as the
+      pre-push gate, not repeatedly on docs-only edits (§ "How we work here").
 - [ ] Output stays concise (lean, gotcha-first; no filler, no duplication).
 - [ ] Safety policy respected — writes confined to `AGENTS.md`, `CONTEXT.md`,
       `docs/adr/*`, `.ai/phase0/scan.json`; merge via managed markers only.
