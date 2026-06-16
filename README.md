@@ -121,12 +121,12 @@ docs/                       # contract, output schema, safety & evidence policy,
 scripts/scan.py             # standalone read-only sensor (stdlib-only, no pip install)
 pyproject.toml              # uv project + ruff + pytest config
 tests/                      # pytest + tests/fixtures/ sample repos
-.claude/skills/phase0-bootstrapper/   # Claude Code skill
+.claude/skills/phase0-bootstrapper/   # Claude Code skill (leans on repo-root docs/ + scripts/scan.py)
   SKILL.md                  # orchestrator: three-phase flow, state detection, degradation
-  resources/                # output-schema, safety-policy, evidence-policy, templates, example
+  templates/                # lean skeletons: AGENTS.md, CONTEXT.md, adr.md
 skills/phase0-bootstrapper/           # portable skill (any agent, self-contained)
   SKILL.md                  # same workflow, self-contained
-  resources/                # output-schema, safety-policy, evidence-policy, templates, example
+  resources/                # output-schema, safety-policy, evidence-policy, scan.py, examples/
 ```
 
 ## Design lineage
