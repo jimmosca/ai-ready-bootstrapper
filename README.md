@@ -31,21 +31,22 @@ changes.
 
 ### As a Claude Code skill
 
-The skill is available automatically when Claude Code runs in this repo. To
-install it globally or copy it into another project:
+The skill is available automatically when Claude Code runs in this repo —
+`.claude/skills/phase0-bootstrapper/` is a verbatim mirror of the portable
+source. To install it elsewhere, copy the self-contained `skills/` source:
 
 ```bash
 # Claude Code global install:
-cp -r .claude/skills/phase0-bootstrapper ~/.claude/skills/
+cp -r skills/phase0-bootstrapper ~/.claude/skills/
 
-# Portable skill (any agent):
+# Any other agent:
 cp -r skills/phase0-bootstrapper <your-agent-skills-dir>/
 ```
 
 Then open the target repo and invoke: *"Bootstrap this repo."* The skill runs
 the three-phase workflow:
 
-1. **Infer** — runs `python scripts/scan.py` (read-only sensor), builds an
+1. **Infer** — runs its bundled read-only sensor (`scan.py`), builds an
    internal draft of facts (`path:line`), inferences (with confidence), and
    open questions. Writes nothing.
 2. **Interview** — surfaces open questions and low-confidence inferences to a
@@ -121,12 +122,10 @@ docs/                       # contract, output schema, safety & evidence policy,
 scripts/scan.py             # standalone read-only sensor (stdlib-only, no pip install)
 pyproject.toml              # uv project + ruff + pytest config
 tests/                      # pytest + tests/fixtures/ sample repos
-.claude/skills/phase0-bootstrapper/   # Claude Code skill (leans on repo-root docs/ + scripts/scan.py)
+skills/phase0-bootstrapper/           # portable skill — the single self-contained source
   SKILL.md                  # orchestrator: three-phase flow, state detection, degradation
-  templates/                # lean skeletons: AGENTS.md, CONTEXT.md, adr.md
-skills/phase0-bootstrapper/           # portable skill (any agent, self-contained)
-  SKILL.md                  # same workflow, self-contained
   resources/                # output-schema, safety-policy, evidence-policy, scan.py, examples/
+.claude/skills/phase0-bootstrapper/   # Claude Code skill — verbatim mirror of skills/ (regenerated, not hand-edited)
 ```
 
 ## Design lineage

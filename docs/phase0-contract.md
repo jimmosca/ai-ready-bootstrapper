@@ -1,8 +1,8 @@
 # Phase 0 Contract
 
 The formal contract of the **phase0-bootstrapper**. This is the source of truth;
-the skill at `.claude/skills/phase0-bootstrapper/` (and its portable twin under
-`skills/`) implements it. Terms used here are defined in
+the portable skill at `skills/phase0-bootstrapper/` (mirrored verbatim into
+`.claude/skills/phase0-bootstrapper/`) implements it. Terms used here are defined in
 [`../CONTEXT.md`](../CONTEXT.md); the work loop they plug into lives in
 [`../AGENTS.md`](../AGENTS.md).
 
