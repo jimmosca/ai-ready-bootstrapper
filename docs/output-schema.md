@@ -2,9 +2,7 @@
 
 The artifacts of the **living convention surface** and their shape. For each:
 **Purpose**, **Required sections**, **Must not include**, **Skeleton**. Skeletons
-are the canonical minimum; working copies live in
-`.claude/skills/phase0-bootstrapper/templates/` (and the portable
-`skills/.../resources/`). This repo's own `AGENTS.md` / `CONTEXT.md` /
+are the canonical minimum. This repo's own `AGENTS.md` / `CONTEXT.md` /
 `docs/adr/` are the worked dogfood example.
 
 Conventions (see [evidence-policy.md](evidence-policy.md)): confirmed claims

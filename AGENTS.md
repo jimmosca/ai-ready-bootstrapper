@@ -67,10 +67,11 @@ and installs an Upkeep Contract so the surface stays current. It is a
 **convention bootstrapper for humans and AI alike**, not a documentation
 generator and not a context pack compiler.
 
-Parts: the **Claude Code skill** (`.claude/skills/phase0-bootstrapper/`), a
-**portable agent skill** (`skills/phase0-bootstrapper/`, self-contained
-`SKILL.md` + `resources/`), and **`scripts/scan.py`** — the standalone,
-read-only sensor that emits structured JSON.
+Parts: the **portable agent skill** (`skills/phase0-bootstrapper/`,
+self-contained `SKILL.md` + `resources/`) — the single source; the **Claude
+Code skill** (`.claude/skills/phase0-bootstrapper/`), a verbatim mirror of it;
+and **`scripts/scan.py`** — the standalone, read-only sensor that emits
+structured JSON.
 
 ## 2. Non-negotiable principles
 
@@ -120,10 +121,11 @@ is `.ai/phase0/scan.json` in the target repo (skipped with `--no-write`).
   important-file / command detection, glossary-candidate extraction,
   state-detection). Emits JSON to stdout and optionally persists
   `.ai/phase0/scan.json`. No package, no pip install required.
-- **Skill packaging** — `skills/phase0-bootstrapper/` (portable) and
-  `.claude/skills/phase0-bootstrapper/` (Claude Code) wrap the three-phase
-  workflow (infer → interview → write) and reference `scripts/scan.py`
-  as the sensor step.
+- **Skill packaging** — `skills/phase0-bootstrapper/` (portable) is the single
+  self-contained source wrapping the three-phase workflow (infer → interview →
+  write); `.claude/skills/phase0-bootstrapper/` (Claude Code) is a verbatim
+  mirror of it. The canonical sensor is `scripts/scan.py` (used by the tests and
+  CI); the skill bundles a localized copy at `resources/scan.py` and runs that.
 
 ## 5. Testing expectations
 
@@ -163,11 +165,14 @@ is `.ai/phase0/scan.json` in the target repo (skipped with `--no-write`).
 - [ ] Output stays concise (lean, gotcha-first; no filler, no duplication).
 - [ ] Safety policy respected — writes confined to `AGENTS.md`, `CONTEXT.md`,
       `docs/adr/*`, `.ai/phase0/scan.json`; merge via managed markers only.
-- [ ] Docs updated when the contract changes — keep `docs/`,
-      `.claude/skills/phase0-bootstrapper/`, and `skills/phase0-bootstrapper/`
-      consistent. The portable skill's
-      `resources/{output-schema,safety-policy,evidence-policy}.md` are copies of
-      the canonical `docs/` versions; keep them in sync.
+- [ ] Docs updated when the contract changes. `.claude/skills/phase0-bootstrapper/`
+      is a **verbatim mirror** of the portable source `skills/phase0-bootstrapper/`
+      — regenerate it (`rm -rf .claude/skills/phase0-bootstrapper && cp -r
+      skills/phase0-bootstrapper .claude/skills/`), never hand-edit it. The
+      portable skill's `resources/{output-schema,safety-policy,evidence-policy}.md`
+      and `resources/scan.py` are localized copies of the canonical `docs/`
+      versions and `scripts/scan.py`; keep them in sync (a deterministic test
+      enforces both — see #14).
 
 ## Read these BEFORE making changes
 
