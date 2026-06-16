@@ -61,3 +61,16 @@ A name the Sensor surfaces — a directory, a declaration, a README heading — 
 might be a domain term. A candidate carries sources, not a meaning: only the
 interview can confirm it into `CONTEXT.md`. Names are not behavior.
 _Avoid:_ glossary term, definition.
+
+### Verbatim mirror
+`.claude/skills/phase0-bootstrapper/` as a byte-identical, regenerated (never
+hand-edited) copy of the portable `skills/phase0-bootstrapper/` source. See
+ADR-0004.
+_Avoid:_ sync, fork.
+
+### Localization transform
+The bounded rewrite applied to a contract document (or the Sensor) when it is
+copied from `docs/` / `scripts/` into the skill's portable `resources/`: rewrite
+or remove only what does not resolve from `resources/`, change nothing else. See
+ADR-0005.
+_Avoid:_ drift, fork.

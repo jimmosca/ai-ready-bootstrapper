@@ -177,7 +177,8 @@ is `.ai/phase0/scan.json` in the target repo (skipped with `--no-write`).
       portable skill's `resources/{output-schema,safety-policy,evidence-policy}.md`
       and `resources/scan.py` are localized copies of the canonical `docs/`
       versions and `scripts/scan.py`; keep them in sync (a deterministic test
-      enforces both — see #14).
+      enforces both — `tests/test_skill_sync.py` (localization rationale in
+      ADR-0005)).
 
 ## Read these BEFORE making changes
 
