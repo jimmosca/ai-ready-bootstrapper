@@ -69,6 +69,10 @@ and mark all unconfirmed items `[OPEN]`.
 Preview proposed writes; wait for **explicit consent** before writing. Then:
 - **`AGENTS.md`** — 6-section skeleton (see `resources/output-schema.md`); merged
   into managed markers `<!-- phase0:start -->…<!-- phase0:end -->`; always written.
+- **Agent entrypoints** (`CLAUDE.md`, `.github/copilot-instructions.md`) — for each
+  that **already exists**, add a managed-marker pointer routing to `AGENTS.md` (the
+  canonical entrypoint), so Claude and Copilot both reach the surface; their prose is
+  preserved, idempotent, in the consented preview. Absent entrypoints are not created.
 - **`CONTEXT.md`** — **lazy**: only if the interview confirms real domain terms.
 - **`docs/adr/`** — **lazy**: only confirmed, hard-to-reverse decisions; ADR-0001
   (methodology) always written — the bootstrapper dogfoods its first act.
@@ -85,7 +89,8 @@ Mark unconfirmed items as "Open questions for a maintainer".
 
 Read files, list dirs, grep, read-only `git` commands. Write set:
 `AGENTS.md`, `CONTEXT.md`, `docs/adr/*`, `.ai/phase0/*` (sensor `scan.json`;
-conditional, provisional `draft.md`).
+conditional, provisional `draft.md`), and a managed-marker pointer to `AGENTS.md`
+inside any present agent entrypoint (`CLAUDE.md`, `.github/copilot-instructions.md`).
 
 ## Forbidden actions
 

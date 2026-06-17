@@ -63,6 +63,11 @@ generator, and not a maintainer.
   - **`CONTEXT.md`** (root, *lazy*) — shared language, only if the interview
     confirms terms.
   - **`docs/adr/NNNN-*.md`** (*lazy*) — only confirmed, hard-to-reverse decisions.
+  - **Agent entrypoints** (`CLAUDE.md`, `.github/copilot-instructions.md`) — any
+    that already exist receive a managed-marker pointer to the canonical
+    `AGENTS.md`, so every agent (Claude, Copilot) reaches one surface. A pointer,
+    not duplication — it reinforces "no parallel taxonomy"; absent entrypoints are
+    not created (see [ADR-0007](adr/0007-route-foreign-agent-entrypoints.md)).
 - **Lazy:** an artifact is written only when it has real content; nothing is
   fabricated to fill a slot.
 - **Merged, not clobbered:** writes into an existing file touch only the managed
@@ -83,8 +88,9 @@ The bootstrapper detects the target's state on start and acts accordingly:
 
 - **Virgin** (no `AGENTS.md`/`CLAUDE.md`/`CONTEXT.md`/`docs/adr/`) → install the
   full surface.
-- **Partial** → merge into what exists; never recreate. If `CLAUDE.md` exists,
-  respect it and ensure it routes to `AGENTS.md`.
+- **Partial** → merge into what exists; never recreate. Any present agent
+  entrypoint (`CLAUDE.md`, `.github/copilot-instructions.md`) is routed to
+  `AGENTS.md` via a managed-marker pointer.
 - **Already bootstrapped** (healthy `CONTEXT.md` + ADRs + an Upkeep Contract) →
   not day zero: decline and offer a **top-up** (e.g. add the Upkeep Contract if
   missing).

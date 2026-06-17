@@ -146,6 +146,7 @@ Top-level fields:
   each `{term, kind, occurrences, sources}` with `kind` ∈
   `directory | identifier | readme`. Candidates only — the interview confirms them.
 - `state` — `{status, signals}`. `signals` are presence booleans
-  (`agents_md, claude_md, context_md, adr_dir, context_map, upkeep_contract`);
+  (`agents_md, claude_md, copilot_instructions, context_md, adr_dir, context_map,
+  upkeep_contract`);
   `status` (`virgin | partial | already-bootstrapped`) is a **presence-based hint**,
   not a health verdict — the skill makes the final decline/top-up call.
