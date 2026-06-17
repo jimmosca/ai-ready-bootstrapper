@@ -12,7 +12,10 @@ how we work), [`CONTEXT.md`](CONTEXT.md) (shared language), and
 [`docs/adr/`](docs/adr/) (durable decisions). Why we adopted it:
 [ADR-0001](docs/adr/0001-adopt-living-convention-methodology.md).
 
-Work loop — **Research → Plan → Implement → Verify**, weight on the extremes:
+Work loop — **Research → Plan → Implement → Verify**, weight on the extremes.
+**Compact intentionally**: keep the durable artifacts (research, the plan) on
+disk and the working window lean, so you can reset to a fresh context without
+losing state. The moves:
 
 - **Research** (read-only, cheap): read before you write; for a wide sweep,
   delegate to a read-only subagent to protect the main context window.

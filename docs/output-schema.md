@@ -36,8 +36,13 @@ block (idempotent). See [safety-policy.md](safety-policy.md).
      verification found; high-risk changes; verify manually by X; **setting up
      verification is the first recommended task**") — that is open question #1.
   3. **How we work here** — the RPI+Verify loop in ~5 bullets, weight on the
-     extremes; names the skills used (`grill-me` / `tdd` / `grill-with-docs`). The
-     Verify bullet carries the run discipline: run the suite when something it
+     extremes; names the skills used (`grill-me` / `tdd` / `grill-with-docs`).
+     The bullets carry the full discipline: **Research** delegates a wide
+     read-only sweep to a subagent that returns a synthesis (protect the main
+     window); **Plan** writes the plan to disk and grills it for any non-trivial
+     change; **compact intentionally** — durable research/plan artifacts on disk,
+     working window lean, reset to fresh context rather than letting it bloat. The
+     **Verify** bullet carries the run discipline: run the suite when something it
      *executes* changed (not docs/comments) and once as the pre-push gate; never
      re-run a green deterministic suite just to recover its output.
   4. **Start here** — pointers into the repo (where to begin reading), not copies.
@@ -56,7 +61,7 @@ block (idempotent). See [safety-policy.md](safety-policy.md).
 <!-- phase0:start -->
 ## What this repo is
 ## Canonical commands        (build / test / lint / run / verify — or "none found")
-## How we work here          (RPI → Verify loop, ~5 bullets; skills referenced)
+## How we work here          (RPI → Verify, ~5 bullets; subagent sweep · plan-to-disk · intentional compaction; skills)
 ## Start here                (pointers, not copies)
 ## Upkeep Contract           (ADR / term / verification triggers → same change)
 ## Pointers                  (CONTEXT.md · docs/adr/)
