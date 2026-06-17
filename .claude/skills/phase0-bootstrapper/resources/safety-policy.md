@@ -12,7 +12,7 @@ The **only** paths the bootstrapper may create or modify:
 - `AGENTS.md` (root)
 - `CONTEXT.md` (root)
 - `docs/adr/*` (new ADR files)
-- `.ai/phase0/*` (the internal `scan.json`)
+- `.ai/phase0/*` (the internal `scan.json`; conditional, provisional `draft.md`)
 
 Everything else in the target repo is **read-only**. Source files are never
 edited, renamed, or deleted.
@@ -38,7 +38,11 @@ edited, renamed, or deleted.
   (a dry-run diff: which files, which managed blocks) and waits for **explicit
   consent** before writing them. The sensor's internal `.ai/phase0/scan.json`
   (machine-readable audit output, no human prose, idempotent overwrite) is written
-  without a prompt — it is the sensor running, not a surface edit.
+  without a prompt — it is the sensor running, not a surface edit. The conditional
+  `.ai/phase0/draft.md` (the inference draft, persisted only for a large/mixed
+  target) is likewise written without a prompt: internal, **provisional** — a
+  timestamped LLM interpretation re-validated against `repo.head_commit` on
+  re-bootstrap, never ground truth.
 - State detection gates this too: an **already-bootstrapped** repo is declined
   with a top-up offer rather than overwritten (see the SKILL.md contract).
 

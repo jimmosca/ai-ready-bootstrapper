@@ -41,7 +41,23 @@ Run `python resources/scan.py <path> --no-write` and read `.state`:
 Run `python resources/scan.py <path>` (or fall back to manual inspection if the
 sensor is absent — `resources/scan.py` is a portable copy of `scripts/scan.py`;
 keep it in sync when the sensor interface changes). Build an internal draft:
-facts (`path:line`), inferences (with confidence), open questions. Write nothing.
+facts (`path:line`), inferences (with confidence), open questions.
+
+**Branch on repo breadth** — soft signal from the scan (`repo.file_count`, OR
+`project_types` has `"mixed repo"` / multiple `repo.languages`; guide, not a gate,
+~150–200 files):
+- **Large / mixed** → run the sweep in a **read-only subagent** that returns *only*
+  the draft (not the contents it read) — the main window pays for the synthesis,
+  not the reads. Persist the draft to `<target>/.ai/phase0/draft.md` at the
+  Infer→Interview boundary, so the interview and any re-bootstrap resume from the
+  artifact, not conversational memory.
+- **Small** → infer **inline**; the draft stays in-context; write nothing.
+
+`draft.md` is **provisional, not ground truth** — an LLM interpretation, not sensor
+output. Write it without a consent prompt (like `scan.json`), headed **PROVISIONAL**
+with the generated timestamp + source `repo.head_commit`. Staleness is
+deterministic: on re-bootstrap, current `head_commit` ≠ the recorded one (or
+`vcs: none`) → stale → **re-infer**, never trust it blind.
 
 ### 2. Interview
 Surface open questions and low-confidence inferences to the maintainer. Answers
@@ -68,7 +84,8 @@ Mark unconfirmed items as "Open questions for a maintainer".
 ## Allowed actions
 
 Read files, list dirs, grep, read-only `git` commands. Write set:
-`AGENTS.md`, `CONTEXT.md`, `docs/adr/*`, `.ai/phase0/scan.json`.
+`AGENTS.md`, `CONTEXT.md`, `docs/adr/*`, `.ai/phase0/*` (sensor `scan.json`;
+conditional, provisional `draft.md`).
 
 ## Forbidden actions
 
