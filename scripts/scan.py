@@ -661,6 +661,7 @@ def _state(root: Path) -> dict:
     signals = {
         "agents_md": agents.is_file(),
         "claude_md": (root / "CLAUDE.md").is_file(),
+        "copilot_instructions": (root / ".github" / "copilot-instructions.md").is_file(),
         "context_md": (root / "CONTEXT.md").is_file(),
         "adr_dir": has_adr,
         "context_map": (root / "CONTEXT-MAP.md").is_file(),

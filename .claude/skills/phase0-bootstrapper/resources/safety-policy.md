@@ -12,6 +12,9 @@ The **only** paths the bootstrapper may create or modify:
 - `AGENTS.md` (root)
 - `CONTEXT.md` (root)
 - `docs/adr/*` (new ADR files)
+- `CLAUDE.md`, `.github/copilot-instructions.md` (agent **entrypoints**) —
+  **pointer only**: a managed-marker block routing to `AGENTS.md`, never their
+  prose; routed only if the entrypoint already exists, never created
 - `.ai/phase0/*` (the internal `scan.json`; conditional, provisional `draft.md`)
 
 Everything else in the target repo is **read-only**. Source files are never
@@ -26,17 +29,20 @@ edited, renamed, or deleted.
   recreated.
 - **`docs/adr/` and `CONTEXT.md` are additive:** ADR-0001 is written only if no
   methodology ADR already exists; terms are added, not replaced.
-- **`CLAUDE.md` is not duplicated:** if it exists, respect it and ensure it routes
-  to `AGENTS.md` (the canonical entrypoint).
+- **Agent entrypoints are routed, not duplicated:** if `CLAUDE.md` or
+  `.github/copilot-instructions.md` exists, add only a managed-marker pointer to
+  `AGENTS.md` (the canonical entrypoint); their human-authored prose is preserved,
+  and a missing entrypoint is **not** created.
 - Re-running replaces only the managed block → **idempotent**: a second run
   changes nothing outside it.
 
 ## Dry-run and consent
 
 - Consent gates **surface** writes: because root files are touched, every run
-  **previews** the proposed writes to `AGENTS.md` / `CONTEXT.md` / `docs/adr/`
-  (a dry-run diff: which files, which managed blocks) and waits for **explicit
-  consent** before writing them. The sensor's internal `.ai/phase0/scan.json`
+  **previews** the proposed writes to `AGENTS.md` / `CONTEXT.md` / `docs/adr/` and
+  the `CLAUDE.md` / `.github/copilot-instructions.md` routing pointers (a dry-run
+  diff: which files, which managed blocks) and waits for **explicit consent** before
+  writing them. The sensor's internal `.ai/phase0/scan.json`
   (machine-readable audit output, no human prose, idempotent overwrite) is written
   without a prompt — it is the sensor running, not a surface edit. The conditional
   `.ai/phase0/draft.md` (the inference draft, persisted only for a large/mixed
@@ -105,7 +111,8 @@ The old "no LLM at all" rule is relaxed and **split**:
 ## Self-check (run before finishing)
 
 - `git status` confirms changes are confined to the write set (`AGENTS.md`,
-  `CONTEXT.md`, `docs/adr/*`, `.ai/phase0/*`).
+  `CONTEXT.md`, `docs/adr/*`, `.ai/phase0/*`, and the `CLAUDE.md` /
+  `.github/copilot-instructions.md` routing pointers).
 - Every edit to a pre-existing file is inside `<!-- phase0:start -->…<!-- phase0:end -->`.
 - A re-run produces no diff outside the managed blocks (idempotent).
 - No forbidden command ran; no remote/infra was mutated; no secret value appears

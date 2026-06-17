@@ -199,6 +199,20 @@ def test_state_already_bootstrapped(python_repo):
     assert state["signals"]["adr_dir"] is True
 
 
+def test_copilot_instructions_signal_absent_by_default(python_repo):
+    state = scan_repo(python_repo)["state"]
+    assert state["signals"]["copilot_instructions"] is False
+
+
+def test_state_detects_copilot_instructions(python_repo):
+    """A foreign agent entrypoint is observed, but does not flip the surface status."""
+    _write(python_repo / ".github" / "copilot-instructions.md", "# Copilot\nuse our conventions\n")
+    state = scan_repo(python_repo)["state"]
+    assert state["signals"]["copilot_instructions"] is True
+    # It is a foreign entrypoint, not the canonical surface — the repo is still virgin.
+    assert state["status"] == "virgin"
+
+
 # --- safety: secret files, symlinks, binary, oversize ------------------------
 
 
