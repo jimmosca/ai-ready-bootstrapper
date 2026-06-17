@@ -36,7 +36,10 @@ generator, and not a maintainer.
 - Does **not** perform day-N upkeep. Maintenance is delegated to ecosystem skills
   (`grill-with-docs`, `to-prd`, `improve-codebase-architecture`).
 - Does **not** materialize a bespoke artifact tree. Everything rises to the three
-  standard files, leaves as an issue, or is dropped — no parallel taxonomy.
+  standard files, leaves as an issue, or is dropped — no parallel taxonomy. The one
+  bounded exception is an internal, provisional `draft.md` (symmetric with
+  `scan.json`, not a deliverable), recorded in
+  [ADR-0006](adr/0006-conditional-provisional-infer-draft.md).
 
 ## Input contract
 
@@ -66,7 +69,10 @@ generator, and not a maintainer.
   block `<!-- phase0:start -->…<!-- phase0:end -->`; human prose is preserved.
   Re-running replaces only that block — **idempotent**.
 - **Internal (minimal):** `<target-repo>/.ai/phase0/scan.json`, the sensor's
-  output, kept for audit and re-bootstrap.
+  output, kept for audit and re-bootstrap; plus a **conditional, provisional**
+  `draft.md` (the inference draft, persisted only for a large/mixed target, headed
+  PROVISIONAL with a deterministic staleness check — see
+  [ADR-0006](adr/0006-conditional-provisional-infer-draft.md)).
 - Confirmed claims carry an inline `path:line` citation; everything unconfirmed
   is an explicit open question, never guessed (see
   [evidence-policy.md](evidence-policy.md)).
