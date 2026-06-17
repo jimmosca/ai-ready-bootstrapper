@@ -24,7 +24,10 @@ Setting up verification is the first recommended task. -->
 
 ## How we work here
 
-Work loop — **Research → Plan → Implement → Verify**, weight on the extremes:
+Work loop — **Research → Plan → Implement → Verify**, weight on the extremes.
+**Compact intentionally**: keep the durable artifacts (research, the plan) on
+disk and the working window lean, so you can reset to a fresh context without
+losing state. The moves:
 
 - **Research** (read-only, cheap): read before you write; for a wide sweep,
   delegate to a read-only subagent to protect the main context window.
